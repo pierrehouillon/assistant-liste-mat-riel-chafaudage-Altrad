@@ -1,5 +1,32 @@
+// api/chat.js
+// Vercel Node Serverless function (non-streaming) — propre & robuste
+
 import fs from "fs";
 import path from "path";
+
+/**
+ * Charge un fichier texte en UTF-8, ou renvoie une chaîne fallback.
+ */
+function loadText(filePath, fallbackLabel) {
+  try {
+    return fs.readFileSync(filePath, "utf8");
+  } catch {
+    return `(${fallbackLabel} introuvable)`;
+  }
+}
+
+/**
+ * Charge un JSON lisible (joli) ou renvoie une chaîne fallback.
+ */
+function loadJsonPretty(filePath, fallbackLabel) {
+  try {
+    const raw = fs.readFileSync(filePath, "utf8");
+    const data = JSON.parse(raw);
+    return JSON.stringify(data, null, 2);
+  } catch {
+    return `(${fallbackLabel} introuvable)`;
+  }
+}
 
 export default async function handler(req, res) {
   if (req.method !== "POST") {
@@ -19,58 +46,54 @@ export default async function handler(req, res) {
       return;
     }
 
-    // Charge les 2 documents locaux
-    const base = process.cwd();
-    const notice = fs.readFileSync(path.join(base, "docs", "notice.md"), "utf8");
-    const catalogueRaw = fs.readFileSync(path.join(base, "docs", "catalogue.json"), "utf8");
-    const catalogue = JSON.parse(catalogueRaw);
-
     const { messages = [], user } = req.body || {};
     if (!Array.isArray(messages) || messages.length === 0) {
       res.status(400).send("Payload invalide: messages[] requis.");
       return;
     }
 
-    // Contexte injecté (notice + stock)
+    // --- Charge les documents locaux (notice + stock PEDUZZI)
+    const base = process.cwd();
+    const notice = loadText(path.join(base, "docs", "notice.md"), "NOTICE");
+    const cataloguePretty = loadJsonPretty(
+      path.join(base, "docs", "catalogue.json"),
+      "CATALOGUE"
+    );
+
+    // --- Contexte injecté dans la requête modèle
     const CONTEXT = [
-      "=== NOTICE (extraits) ===",
+      "=== NOTICE (extraits METRIX) ===",
       notice,
       "",
-      "=== CATALOGUE_JSON (références/poids disponibles au stock PEDUZZI) ===",
-      JSON.stringify(catalogue, null, 2)
+      "=== CATALOGUE_JSON (stock PEDUZZI : refs / désignations / poids) ===",
+      cataloguePretty,
     ].join("\n");
 
-    // Consignes d’output : tableau HTML + total + rappel de saisie BO
-    const OUTPUT_POLICY = `
-- Toujours produire un **seul tableau HTML** avec les colonnes : Référence | Désignation | Qté | PU(kg) | PT(kg).
-- Calculer et afficher la **ligne TOTAL GÉNÉRAL (kg)**.
-- N'utiliser **que** les références présentes dans CATALOGUE_JSON. Si une référence n'existe pas, écrire "Référence indisponible au stock PEDUZZI" et ne pas inventer le poids.
-- Si une info essentielle manque, poser **une seule** question courte puis produire la liste.
-- Avant la sortie finale, demander : "Souhaites-tu protéger la façade côté mur ? Obligatoire si l’espace > 20 cm." puis "Veux-tu **gruter** l’échafaudage ?".
-- Finir par : "Tu peux maintenant saisir ta commande dans **ta tablette** ou sur le **Back Office PEDUZZI**."
-`;
+    // --- Rappels de sortie (léger, le SYSTEM_PROMPT porte la logique métier)
+    const OUTPUT_POLICY = [
+      "- Un seul tableau HTML final : Référence | Désignation | Qté | PU(kg) | PT(kg).",
+      "- Ligne de TOTAL GÉNÉRAL (kg).",
+      "- Utiliser uniquement des références présentes dans CATALOGUE_JSON.",
+      "- Ordre de fin : question protection côté mur (avec l’avertissement >20 cm) → question grutage → tableau final.",
+      "- Si l’utilisateur parle en m², NE RIEN DÉDUIRE : demander explicitement longueur et hauteur, puis continuer.",
+    ].join("\n");
 
-    // On permet un bouton "Lister maintenant" via un message /force_list
-    const last = messages[messages.length - 1]?.content || "";
-    const forceList = last && last.toLowerCase().includes("/force_list");
-
+    // --- Construction du payload OpenAI (non-streaming)
     const upstreamBody = {
       model: MODEL,
       temperature: 0.2,
       top_p: 0.9,
+      stream: false,
       messages: [
         { role: "system", content: SYSTEM_PROMPT },
-        { role: "system", content: "Contexte utilisateur: " + (user?.email || "inconnu") },
+        { role: "system", content: "Contexte utilisateur : " + (user?.email || "inconnu") },
         { role: "system", content: CONTEXT },
         { role: "system", content: OUTPUT_POLICY },
-        ...(forceList
-          ? [{ role: "system", content: "L'utilisateur a demandé la liste immédiatement : **produis la liste complète maintenant**." }]
-          : []),
-        ...messages
+        ...messages,
       ],
-      stream: false
     };
 
+    // --- Appel OpenAI Chat Completions
     const upstream = await fetch("https://api.openai.com/v1/chat/completions", {
       method: "POST",
       headers: {
