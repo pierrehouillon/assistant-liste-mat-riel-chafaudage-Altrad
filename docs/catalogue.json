@@ -1,0 +1,23 @@
+{
+  "meta": {
+    "source": "Bon de commande interne PEDUZZI",
+    "version": "2025-11-07"
+  },
+  "items": [
+    { "ref": "ALTASV5", "name": "Socle à vérin 0,61 m", "weight": 3.2 },
+    { "ref": "ALTKEMB", "name": "Embase de départ", "weight": 2.1 },
+    { "ref": "ALTKPT1", "name": "Poteau standard hauteur 1,00 m", "weight": 5.4 },
+    { "ref": "ALTKPT2", "name": "Poteau standard hauteur 2,00 m", "weight": 9.9 },
+    { "ref": "ALTKLC2", "name": "Lisse 1,00 m", "weight": 4.0 },
+    { "ref": "ALTKLC5", "name": "Lisse 2,50 m (protection échelle)", "weight": 8.5 },
+    { "ref": "ALTKMC5", "name": "Plancher acier 2,50 m × 0,30 m", "weight": 17.3 },
+    { "ref": "ALTKPE5", "name": "Plancher trappe 2,50 m × 0,60 m", "weight": 25.4 },
+    { "ref": "ALTKGH5", "name": "Garde-corps permanent de sécurité 2,50 m", "weight": 13.3 },
+    { "ref": "ALTKGH2", "name": "Garde-corps permanent 1,00 m avec plinthe intégrée", "weight": 8.5 },
+    { "ref": "ALTAPP5", "name": "Plinthe bois 2,50 m", "weight": 4.9 },
+    { "ref": "ALTKDV5", "name": "Diagonale verticale 2,50 m × 2,00 m", "weight": 11.3 },
+    { "ref": "ALTAMX1", "name": "Cale bois", "weight": 3.7 },
+    { "ref": "ALTL99P", "name": "Raccord angle droit pour tube 48,3 mm (collier assemblage)", "weight": 1.5 }
+    // ➜ complète ici avec TOUTES tes références et poids exacts
+  ]
+}
