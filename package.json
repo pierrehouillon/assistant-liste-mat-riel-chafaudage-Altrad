@@ -1,0 +1,23 @@
+{
+  "name": "assistant-altrad-metrix",
+  "version": "1.0.0",
+  "description": "Assistant ALTRAD METRIX pour la configuration et la liste de matériel échafaudage.",
+  "main": "api/chat.js",
+  "scripts": {
+    "dev": "vercel dev",
+    "start": "node api/chat.js",
+    "build": "echo 'Rien à builder (frontend statique + API serverless)'"
+  },
+  "dependencies": {
+    "openai": "^4.56.0",
+    "fs-extra": "^11.2.0",
+    "path": "^0.12.7"
+  },
+  "devDependencies": {
+    "vercel": "^37.4.1"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "license": "MIT"
+}
