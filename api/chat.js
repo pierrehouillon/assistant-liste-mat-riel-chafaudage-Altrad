@@ -1,12 +1,10 @@
 // api/chat.js
-// Vercel Node Serverless function (non-streaming) — propre & robuste
+// Vercel Node serverless – Appel OpenAI non-streaming + anti-boucle + lecture docs
 
 import fs from "fs";
 import path from "path";
 
-/**
- * Charge un fichier texte en UTF-8, ou renvoie une chaîne fallback.
- */
+/* ---------- utilitaires de lecture fichiers ---------- */
 function loadText(filePath, fallbackLabel) {
   try {
     return fs.readFileSync(filePath, "utf8");
@@ -14,10 +12,6 @@ function loadText(filePath, fallbackLabel) {
     return `(${fallbackLabel} introuvable)`;
   }
 }
-
-/**
- * Charge un JSON lisible (joli) ou renvoie une chaîne fallback.
- */
 function loadJsonPretty(filePath, fallbackLabel) {
   try {
     const raw = fs.readFileSync(filePath, "utf8");
@@ -28,7 +22,16 @@ function loadJsonPretty(filePath, fallbackLabel) {
   }
 }
 
+/* ---------- handler Vercel ---------- */
 export default async function handler(req, res) {
+  // CORS minimal (utile si WebView/app externe)
+  res.setHeader("Access-Control-Allow-Origin", "*");
+  res.setHeader("Access-Control-Allow-Methods", "POST,OPTIONS");
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
+  if (req.method === "OPTIONS") {
+    res.status(200).end();
+    return;
+  }
   if (req.method !== "POST") {
     res.status(405).send("Method Not Allowed");
     return;
@@ -48,11 +51,11 @@ export default async function handler(req, res) {
 
     const { messages = [], user } = req.body || {};
     if (!Array.isArray(messages) || messages.length === 0) {
-      res.status(400).send("Payload invalide: messages[] requis.");
+      res.status(400).send("Payload invalide : messages[] requis.");
       return;
     }
 
-    // --- Charge les documents locaux (notice + stock PEDUZZI)
+    // --- charge la notice + le catalogue PEDUZZI
     const base = process.cwd();
     const notice = loadText(path.join(base, "docs", "notice.md"), "NOTICE");
     const cataloguePretty = loadJsonPretty(
@@ -60,47 +63,54 @@ export default async function handler(req, res) {
       "CATALOGUE"
     );
 
-    // --- Contexte injecté dans la requête modèle
+    // --- contexte injecté
     const CONTEXT = [
       "=== NOTICE (extraits METRIX) ===",
       notice,
       "",
       "=== CATALOGUE_JSON (stock PEDUZZI : refs / désignations / poids) ===",
-      cataloguePretty,
+      cataloguePretty
     ].join("\n");
 
-    // --- Rappels de sortie (léger, le SYSTEM_PROMPT porte la logique métier)
+    // --- politique de sortie & anti-boucle (renforce le SYSTEM_PROMPT)
     const OUTPUT_POLICY = [
-      "- Un seul tableau HTML final : Référence | Désignation | Qté | PU(kg) | PT(kg).",
-      "- Ligne de TOTAL GÉNÉRAL (kg).",
-      "- Utiliser uniquement des références présentes dans CATALOGUE_JSON.",
-      "- Ordre de fin : question protection côté mur (avec l’avertissement >20 cm) → question grutage → tableau final.",
-      "- Si l’utilisateur parle en m², NE RIEN DÉDUIRE : demander explicitement longueur et hauteur, puis continuer.",
+      "Anti-boucle & logique d’état (OBLIGATOIRE) :",
+      "- Maintiens une checklist interne : { longueur_L, hauteur_H, largeur (1,00 m par défaut ou 0,70 m si dit), protection_côté_mur (oui/non), grutage (oui/non) }.",
+      "- À chaque tour : extrais les infos déjà données, mets à jour la checklist.",
+      "- Ne repose JAMAIS une question déjà répondue.",
+      "- S'il manque 1 info, pose UNE seule question courte pour cette info la plus bloquante.",
+      "- Quand toutes les infos sont connues, génère immédiatement la liste finale (tableau HTML) sans re-questionner.",
+      "",
+      "Cas m² : si l’utilisateur parle en m² (ex. 40 m²), NE DÉDUIS RIEN. Demande explicitement longueur ET hauteur en mètres, puis continue.",
+      "",
+      "Sortie finale : un seul tableau HTML avec colonnes Référence | Désignation | Qté | PU(kg) | PT(kg), puis une ligne TOTAL GÉNÉRAL (kg).",
+      "Utiliser uniquement des références présentes dans CATALOGUE_JSON ; sinon écrire « Référence indisponible au stock PEDUZZI » (sans inventer de poids).",
+      "Ordre de fin : question protection côté mur (⚠️ obligatoire si espace > 20 cm) → question grutage → tableau final.",
+      "Style : français pro, concis."
     ].join("\n");
 
-    // --- Construction du payload OpenAI (non-streaming)
+    // --- appel OpenAI (non-streaming pour stabilité)
     const upstreamBody = {
       model: MODEL,
-      temperature: 0.2,
-      top_p: 0.9,
+      temperature: 0.1, // plus bas => moins de dérives / redites
+      top_p: 0.8,
       stream: false,
       messages: [
         { role: "system", content: SYSTEM_PROMPT },
         { role: "system", content: "Contexte utilisateur : " + (user?.email || "inconnu") },
         { role: "system", content: CONTEXT },
         { role: "system", content: OUTPUT_POLICY },
-        ...messages,
-      ],
+        ...messages
+      ]
     };
 
-    // --- Appel OpenAI Chat Completions
     const upstream = await fetch("https://api.openai.com/v1/chat/completions", {
       method: "POST",
       headers: {
         Authorization: `Bearer ${OPENAI_API_KEY}`,
-        "Content-Type": "application/json",
+        "Content-Type": "application/json"
       },
-      body: JSON.stringify(upstreamBody),
+      body: JSON.stringify(upstreamBody)
     });
 
     if (!upstream.ok) {
