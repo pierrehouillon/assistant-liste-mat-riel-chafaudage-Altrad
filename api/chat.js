@@ -172,4 +172,3 @@ Réponds toujours en français, de façon concrète, courte et claire, comme un 
     res.status(500).json({ error: "Erreur interne API chat" });
   }
 };
-
