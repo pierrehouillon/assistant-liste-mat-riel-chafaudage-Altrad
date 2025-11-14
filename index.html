@@ -1,286 +1,276 @@
 <!doctype html>
 <html lang="fr">
-  <head>
-    <meta charset="utf-8" />
-    <title>Assistant ALTRAD METRIX</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <style>
-      * { box-sizing: border-box; }
-      html, body {
-        height: 100%;
-        margin: 0;
-        font-family: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-        background: #f3f4f6;
-        color: #111827;
-      }
-      body {
-        display: flex;
-        justify-content: center;
-      }
-      .wrap {
-        max-width: 960px;
-        width: 100%;
-        padding: 16px;
-      }
-      h1 {
-        font-size: 1.5rem;
-        font-weight: 600;
-        letter-spacing: -0.01em;
-        margin: 0 0 4px;
-      }
-      .subtitle {
-        font-size: 0.9rem;
-        color: #6b7280;
-        margin-bottom: 16px;
-      }
-      .card {
-        background: #ffffff;
-        border-radius: 14px;
-        padding: 12px 16px;
-        border: 1px solid #e5e7eb;
-        box-shadow: 0 1px 2px rgba(15, 23, 42, 0.05);
-      }
-      .messages {
-        margin-top: 12px;
-        display: flex;
-        flex-direction: column;
-        gap: 8px;
-        max-height: calc(100vh - 190px);
-        overflow-y: auto;
-        padding-right: 4px;
-      }
-      .row {
-        display: flex;
-        flex-direction: column;
-        max-width: 80%;
-      }
-      .row.user {
-        margin-left: auto;
-        align-items: flex-end;
-      }
-      .row.assistant {
-        margin-right: auto;
-        align-items: flex-start;
-      }
-      .row.system {
-        margin: 0 auto;
-        align-items: center;
-      }
-      .bubble {
-        border-radius: 16px;
-        padding: 10px 12px;
-        white-space: pre-wrap;
-        line-height: 1.4;
-        font-size: 0.95rem;
-      }
-      .bubble.user {
-        background: #2563eb;
-        color: #ffffff;
-      }
-      .bubble.assistant {
-        background: #ffffff;
-        color: #111827;
-        border: 1px solid #e5e7eb;
-      }
-      .bubble.system {
-        background: #e5e7eb;
-        color: #4b5563;
-        font-style: italic;
-      }
-      .time {
-        font-size: 0.7rem;
-        color: #9ca3af;
-        margin-top: 2px;
-        padding: 0 4px;
-      }
-      .assistant-content {
-        white-space: pre-wrap;
-        font-family: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-      }
+<head>
+  <meta charset="utf-8" />
+  <title>Assistant ALTRAD METRIX</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    html, body {
+      height: 100%;
+      margin: 0;
+      background: #f9fafb;
+      color: #111827;
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+    }
+    * { box-sizing: border-box; }
 
-      .composer {
-        margin-top: 10px;
-        display: flex;
-        gap: 8px;
-        align-items: center;
-      }
-      .composer input {
-        flex: 1;
-        border-radius: 999px;
-        border: 1px solid #d1d5db;
-        padding: 10px 14px;
-        font-size: 0.95rem;
-        outline: none;
-        background: #ffffff;
-      }
-      .composer input:focus {
-        border-color: #2563eb;
-        box-shadow: 0 0 0 1px #2563eb22;
-      }
-      .composer button {
-        border-radius: 999px;
-        border: none;
-        padding: 9px 18px;
-        font-size: 0.9rem;
-        background: #2563eb;
-        color: #ffffff;
-        cursor: pointer;
-      }
-      .composer button:disabled {
-        opacity: 0.6;
-        cursor: not-allowed;
-      }
-      .typing {
-        font-size: 0.8rem;
-        color: #9ca3af;
-        margin-top: 4px;
-        padding-left: 4px;
-      }
-    </style>
-  </head>
+    .wrap {
+      max-width: 48rem;
+      margin: 0 auto;
+      padding: 1rem;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
 
-  <body>
-    <div class="wrap">
-      <div class="card">
-        <h1>Assistant ALTRAD METRIX</h1>
-        <div class="subtitle">
-          Bienvenue ! Je t’aide à configurer ton échafaudage ALTRAD METRIX
-          (liste de matériel prête à commander).
-        </div>
+    h1 {
+      font-size: 1.5rem;
+      font-weight: 600;
+      letter-spacing: -0.01em;
+      margin: 0 0 .25rem;
+    }
+    .subtitle {
+      margin: 0 0 1.25rem;
+      font-size: .9rem;
+      color: #4b5563;
+      background: #e5f0ff;
+      border-radius: 12px;
+      padding: .75rem 1rem;
+    }
 
-        <div id="messages" class="messages"></div>
+    .messages {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: .75rem;
+      padding-bottom: .75rem;
+      overflow-y: auto;
+    }
 
-        <div id="typing" class="typing" style="display:none;">
-          L’assistant rédige la réponse…
-        </div>
+    .msg {
+      display: flex;
+      flex-direction: column;
+      max-width: 80%;
+    }
 
-        <div class="composer">
-          <input
-            id="input"
-            placeholder="Décris ta configuration (ex. : 5 m de long × 6 m de haut × 1 m de large)…"
-          />
-          <button id="send">Envoyer</button>
-        </div>
-      </div>
+    .msg.user {
+      margin-left: auto;
+      align-items: flex-end;
+    }
+    .msg.assistant,
+    .msg.system {
+      margin-right: auto;
+      align-items: flex-start;
+    }
+
+    .bubble {
+      border-radius: 12px;
+      padding: 10px 12px;
+      white-space: pre-wrap;
+      line-height: 1.4;
+      font-size: 14px;
+    }
+
+    .bubble.user {
+      background: #2563eb;
+      color: #fff;
+    }
+    .bubble.assistant {
+      background: #fff;
+      color: #111827;
+      border: 1px solid #e5e7eb;
+      box-shadow: 0 1px 2px rgba(0,0,0,.04);
+    }
+    .bubble.system {
+      background: #f3f4f6;
+      color: #6b7280;
+      font-style: italic;
+    }
+
+    .time {
+      font-size: .7rem;
+      color: #6b7280;
+      margin-top: .25rem;
+      padding: 0 .5rem;
+    }
+
+    .composer {
+      position: sticky;
+      bottom: 0;
+      display: flex;
+      gap: .5rem;
+      padding-top: .5rem;
+      background: #f9fafb;
+    }
+
+    .composer input {
+      flex: 1;
+      border: 1px solid #e5e7eb;
+      border-radius: 999px;
+      padding: .5rem .9rem;
+      font-size: 15px;
+      background: #fff;
+      outline: none;
+    }
+    .composer input:focus {
+      border-color: #2563eb;
+      box-shadow: 0 0 0 1px #2563eb22;
+    }
+
+    .composer button {
+      padding: .5rem .9rem;
+      border: none;
+      border-radius: 999px;
+      background: #2563eb;
+      color: #fff;
+      font-size: .9rem;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+    .composer button:disabled {
+      opacity: .6;
+      cursor: default;
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div>
+      <h1>Assistant ALTRAD METRIX</h1>
+      <p class="subtitle">
+        Bienvenue ! Je t’aide à configurer ton échafaudage ALTRAD METRIX (liste de matériel prête à commander).
+      </p>
     </div>
 
-    <script>
-      const $messages = document.getElementById("messages");
-      const $input = document.getElementById("input");
-      const $send = document.getElementById("send");
-      const $typing = document.getElementById("typing");
+    <div id="messages" class="messages"></div>
 
-      // Historique complet (user + assistant)
-      // ⚠️ Le système est géré côté serveur, ici on garde uniquement user / assistant
-      const conversation = [];
+    <form class="composer" id="composer-form">
+      <input
+        id="input"
+        type="text"
+        autocomplete="off"
+        placeholder="Décris ta configuration (ex. : 5 m × 6 m × 1 m)…"
+      />
+      <button id="send-btn" type="submit">Envoyer</button>
+    </form>
+  </div>
 
-      function nowTime() {
-        return new Date().toLocaleTimeString("fr-FR", {
-          hour: "2-digit",
-          minute: "2-digit",
-        });
-      }
+  <script>
+    const $messages = document.getElementById('messages');
+    const $input = document.getElementById('input');
+    const $form = document.getElementById('composer-form');
+    const $sendBtn = document.getElementById('send-btn');
 
-      function renderMessage(role, content) {
-        const row = document.createElement("div");
-        row.className = "row " + role;
+    // Historique complet envoyé à l’API
+    // (uniquement user + assistant, pas le message de bienvenue visuel)
+    const history = [];
 
-        const bubble = document.createElement("div");
-        bubble.className = "bubble " + role + (role === "assistant" ? " assistant-content" : "");
-        bubble.textContent = content;
-
-        row.appendChild(bubble);
-
-        if (role !== "system") {
-          const t = document.createElement("div");
-          t.className = "time";
-          t.textContent = nowTime();
-          row.appendChild(t);
-        }
-
-        $messages.appendChild(row);
-        $messages.scrollTop = $messages.scrollHeight;
-
-        return bubble;
-      }
-
-      function addMessage(role, content) {
-        const msg = { role, content };
-        conversation.push(msg);
-        const bubble = renderMessage(role, content);
-        return { msg, bubble };
-      }
-
-      // Message d’accueil "système"
-      renderMessage(
-        "system",
-        "Bienvenue ! Je t’aide à configurer ton échafaudage ALTRAD METRIX (liste de matériel prête à commander)."
-      );
-
-      async function callApi(userText) {
-        // Ajoute le message utilisateur dans l’historique
-        addMessage("user", userText);
-
-        // Prépare le payload : on envoie TOUT l’historique sauf le message système local
-        const messagesForApi = conversation.map((m) => ({
-          role: m.role,
-          content: m.content,
-        }));
-
-        // Bulle assistant vide pour le streaming
-        const { msg: assistantMsg, bubble } = addMessage("assistant", "");
-        $typing.style.display = "block";
-        $send.disabled = true;
-
-        try {
-          const resp = await fetch("/api/chat", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ messages: messagesForApi }),
-          });
-
-          if (!resp.ok || !resp.body) {
-            throw new Error("Erreur API: " + resp.status);
-          }
-
-          const reader = resp.body.getReader();
-          const decoder = new TextDecoder();
-          let acc = "";
-
-          while (true) {
-            const { done, value } = await reader.read();
-            if (done) break;
-            acc += decoder.decode(value, { stream: true });
-
-            bubble.textContent = acc;
-            assistantMsg.content = acc;
-            $messages.scrollTop = $messages.scrollHeight;
-          }
-        } catch (err) {
-          bubble.textContent =
-            "Désolé, une erreur est survenue lors de la génération de la réponse.";
-          assistantMsg.content = bubble.textContent;
-          console.error(err);
-        } finally {
-          $typing.style.display = "none";
-          $send.disabled = false;
-        }
-      }
-
-      function send() {
-        const v = $input.value.trim();
-        if (!v) return;
-        $input.value = "";
-        callApi(v);
-      }
-
-      $send.addEventListener("click", send);
-      $input.addEventListener("keydown", (e) => {
-        if (e.key === "Enter") {
-          e.preventDefault();
-          send();
-        }
+    function time() {
+      return new Date().toLocaleTimeString('fr-FR', {
+        hour: '2-digit',
+        minute: '2-digit'
       });
-    </script>
-  </body>
+    }
+
+    function addMessage(role, content) {
+      const box = document.createElement('div');
+      box.className = 'msg ' + role;
+
+      const bubble = document.createElement('div');
+      bubble.className = 'bubble ' + role;
+      bubble.textContent = content;
+
+      box.appendChild(bubble);
+
+      if (role !== 'system') {
+        const stamp = document.createElement('div');
+        stamp.className = 'time';
+        stamp.textContent = time();
+        box.appendChild(stamp);
+      }
+
+      $messages.appendChild(box);
+      $messages.scrollTop = $messages.scrollHeight;
+
+      return bubble;
+    }
+
+    // Message d’accueil (non envoyé à l’API)
+    addMessage(
+      'system',
+      "Je suis ton collègue terrain ALTRAD METRIX. Donne-moi simplement la longueur et la hauteur de ta façade, je m’occupe du reste."
+    );
+
+    async function callApiWithHistory() {
+      try {
+        const payload = {
+          messages: history.map(m => ({
+            role: m.role,
+            content: m.content
+          }))
+        };
+
+        const resp = await fetch('/api/chat', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+
+        if (!resp.ok || !resp.body) {
+          throw new Error('Erreur API: ' + resp.status);
+        }
+
+        const reader = resp.body.getReader();
+        const decoder = new TextDecoder();
+        let acc = '';
+
+        // Bulle assistant vide que l’on remplit au fur et à mesure
+        const bubble = addMessage('assistant', '');
+
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          acc += decoder.decode(value, { stream: true });
+          bubble.textContent = acc;
+          $messages.scrollTop = $messages.scrollHeight;
+        }
+
+        // On ajoute la réponse complète dans l’historique
+        history.push({ role: 'assistant', content: acc || '' });
+      } catch (e) {
+        console.error(e);
+        addMessage(
+          'assistant',
+          "Désolé, une erreur est survenue lors de l’appel à l’API. Réessaie dans un instant."
+        );
+      } finally {
+        $sendBtn.disabled = false;
+        $input.disabled = false;
+        $input.focus();
+      }
+    }
+
+    async function handleSend(evt) {
+      if (evt) evt.preventDefault();
+
+      const v = $input.value.trim();
+      if (!v) return;
+
+      // Affiche le message utilisateur
+      addMessage('user', v);
+
+      // Ajoute au contexte envoyé à l’API
+      history.push({ role: 'user', content: v });
+
+      // Prépare nouvel appel
+      $input.value = '';
+      $sendBtn.disabled = true;
+      $input.disabled = true;
+
+      await callApiWithHistory();
+    }
+
+    $form.addEventListener('submit', handleSend);
+  </script>
+</body>
 </html>
