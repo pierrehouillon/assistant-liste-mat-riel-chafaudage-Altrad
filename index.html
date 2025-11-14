@@ -1,344 +1,286 @@
 <!doctype html>
 <html lang="fr">
-<head>
-  <meta charset="utf-8" />
-  <title>Assistant ALTRAD METRIX</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <head>
+    <meta charset="utf-8" />
+    <title>Assistant ALTRAD METRIX</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <style>
+      * { box-sizing: border-box; }
+      html, body {
+        height: 100%;
+        margin: 0;
+        font-family: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        background: #f3f4f6;
+        color: #111827;
+      }
+      body {
+        display: flex;
+        justify-content: center;
+      }
+      .wrap {
+        max-width: 960px;
+        width: 100%;
+        padding: 16px;
+      }
+      h1 {
+        font-size: 1.5rem;
+        font-weight: 600;
+        letter-spacing: -0.01em;
+        margin: 0 0 4px;
+      }
+      .subtitle {
+        font-size: 0.9rem;
+        color: #6b7280;
+        margin-bottom: 16px;
+      }
+      .card {
+        background: #ffffff;
+        border-radius: 14px;
+        padding: 12px 16px;
+        border: 1px solid #e5e7eb;
+        box-shadow: 0 1px 2px rgba(15, 23, 42, 0.05);
+      }
+      .messages {
+        margin-top: 12px;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        max-height: calc(100vh - 190px);
+        overflow-y: auto;
+        padding-right: 4px;
+      }
+      .row {
+        display: flex;
+        flex-direction: column;
+        max-width: 80%;
+      }
+      .row.user {
+        margin-left: auto;
+        align-items: flex-end;
+      }
+      .row.assistant {
+        margin-right: auto;
+        align-items: flex-start;
+      }
+      .row.system {
+        margin: 0 auto;
+        align-items: center;
+      }
+      .bubble {
+        border-radius: 16px;
+        padding: 10px 12px;
+        white-space: pre-wrap;
+        line-height: 1.4;
+        font-size: 0.95rem;
+      }
+      .bubble.user {
+        background: #2563eb;
+        color: #ffffff;
+      }
+      .bubble.assistant {
+        background: #ffffff;
+        color: #111827;
+        border: 1px solid #e5e7eb;
+      }
+      .bubble.system {
+        background: #e5e7eb;
+        color: #4b5563;
+        font-style: italic;
+      }
+      .time {
+        font-size: 0.7rem;
+        color: #9ca3af;
+        margin-top: 2px;
+        padding: 0 4px;
+      }
+      .assistant-content {
+        white-space: pre-wrap;
+        font-family: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      }
 
-  <style>
-    :root {
-      --bg: #f3f4f6;
-      --bg-panel: #ffffff;
-      --border: #e5e7eb;
-      --text: #111827;
-      --muted: #6b7280;
-      --primary: #2563eb;
-      --primary-text: #ffffff;
-      --system-bg: #f9fafb;
-    }
+      .composer {
+        margin-top: 10px;
+        display: flex;
+        gap: 8px;
+        align-items: center;
+      }
+      .composer input {
+        flex: 1;
+        border-radius: 999px;
+        border: 1px solid #d1d5db;
+        padding: 10px 14px;
+        font-size: 0.95rem;
+        outline: none;
+        background: #ffffff;
+      }
+      .composer input:focus {
+        border-color: #2563eb;
+        box-shadow: 0 0 0 1px #2563eb22;
+      }
+      .composer button {
+        border-radius: 999px;
+        border: none;
+        padding: 9px 18px;
+        font-size: 0.9rem;
+        background: #2563eb;
+        color: #ffffff;
+        cursor: pointer;
+      }
+      .composer button:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+      }
+      .typing {
+        font-size: 0.8rem;
+        color: #9ca3af;
+        margin-top: 4px;
+        padding-left: 4px;
+      }
+    </style>
+  </head>
 
-    * {
-      box-sizing: border-box;
-    }
+  <body>
+    <div class="wrap">
+      <div class="card">
+        <h1>Assistant ALTRAD METRIX</h1>
+        <div class="subtitle">
+          Bienvenue ! Je t’aide à configurer ton échafaudage ALTRAD METRIX
+          (liste de matériel prête à commander).
+        </div>
 
-    html, body {
-      margin: 0;
-      padding: 0;
-      height: 100%;
-      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
-        Roboto, Helvetica, Arial, sans-serif;
-      background: var(--bg);
-      color: var(--text);
-    }
+        <div id="messages" class="messages"></div>
 
-    body {
-      display: flex;
-      justify-content: center;
-    }
+        <div id="typing" class="typing" style="display:none;">
+          L’assistant rédige la réponse…
+        </div>
 
-    .wrap {
-      width: 100%;
-      max-width: 900px;
-      padding: 1.5rem 1rem;
-      display: flex;
-      flex-direction: column;
-      gap: 1rem;
-    }
-
-    header {
-      background: var(--bg-panel);
-      border-radius: 16px;
-      padding: 1rem 1.25rem;
-      box-shadow: 0 1px 3px rgba(0,0,0,0.06);
-      border: 1px solid var(--border);
-    }
-
-    header h1 {
-      margin: 0 0 .35rem 0;
-      font-size: 1.5rem;
-      font-weight: 600;
-      letter-spacing: -0.01em;
-    }
-
-    header p {
-      margin: 0;
-      font-size: .9rem;
-      color: var(--muted);
-    }
-
-    .messages {
-      flex: 1;
-      min-height: 300px;
-      max-height: calc(100vh - 220px);
-      overflow-y: auto;
-      padding: 0.5rem 0.25rem;
-      display: flex;
-      flex-direction: column;
-      gap: 0.75rem;
-    }
-
-    .msg {
-      display: flex;
-      flex-direction: column;
-      max-width: 80%;
-    }
-
-    .msg.user {
-      align-self: flex-end;
-      align-items: flex-end;
-    }
-
-    .msg.assistant,
-    .msg.system {
-      align-self: flex-start;
-      align-items: flex-start;
-    }
-
-    .bubble {
-      border-radius: 16px;
-      padding: 10px 12px;
-      line-height: 1.5;
-      font-size: .95rem;
-      white-space: pre-wrap;
-      word-wrap: break-word;
-      background: var(--bg-panel);
-      border: 1px solid var(--border);
-    }
-
-    .bubble.user {
-      background: var(--primary);
-      color: var(--primary-text);
-      border-color: var(--primary);
-    }
-
-    .bubble.assistant {
-      background: #ffffff;
-    }
-
-    .bubble.system {
-      background: var(--system-bg);
-      color: var(--muted);
-      border-style: dashed;
-      font-style: italic;
-    }
-
-    .time {
-      font-size: .75rem;
-      color: var(--muted);
-      margin-top: .2rem;
-      padding: 0 .3rem;
-    }
-
-    .composer {
-      margin-top: .5rem;
-      display: flex;
-      gap: .5rem;
-      align-items: center;
-      padding-top: .5rem;
-      border-top: 1px solid var(--border);
-      background: transparent;
-    }
-
-    .composer input {
-      flex: 1;
-      border-radius: 999px;
-      border: 1px solid var(--border);
-      padding: .55rem .85rem;
-      font-size: .95rem;
-      outline: none;
-      background: #ffffff;
-    }
-
-    .composer input:focus {
-      border-color: var(--primary);
-      box-shadow: 0 0 0 1px rgba(37, 99, 235, 0.15);
-    }
-
-    .composer button {
-      padding: .55rem 1.1rem;
-      border-radius: 999px;
-      border: none;
-      cursor: pointer;
-      font-size: .9rem;
-      font-weight: 500;
-      background: var(--primary);
-      color: var(--primary-text);
-      display: inline-flex;
-      align-items: center;
-      gap: .35rem;
-    }
-
-    .composer button:disabled {
-      opacity: 0.6;
-      cursor: default;
-    }
-
-    .composer button span {
-      font-size: .85rem;
-    }
-
-    /* rendu tableau assistant si HTML <table> */
-    .assistant-content table {
-      width: 100%;
-      border-collapse: collapse;
-      font-size: .9rem;
-    }
-    .assistant-content th,
-    .assistant-content td {
-      border: 1px solid #e5e7eb;
-      padding: 4px 6px;
-      text-align: left;
-    }
-    .assistant-content thead th {
-      background: #f3f4f6;
-      font-weight: 600;
-    }
-    .assistant-content tr:nth-child(even) td {
-      background: #fafafa;
-    }
-    .assistant-content .num {
-      text-align: right;
-      white-space: nowrap;
-    }
-  </style>
-</head>
-
-<body>
-  <div class="wrap">
-    <header>
-      <h1>Assistant ALTRAD METRIX</h1>
-      <p>
-        Bienvenue ! Je t’aide à configurer ton échafaudage ALTRAD METRIX
-        (liste de matériel prête à commander).
-      </p>
-    </header>
-
-    <div id="messages" class="messages"></div>
-
-    <div class="composer">
-      <input
-        id="input"
-        type="text"
-        placeholder="Décris ta configuration (ex. : 5 m × 6 m × 1 m)…"
-        autocomplete="off"
-      />
-      <button id="send">
-        <span>Envoyer</span>
-      </button>
+        <div class="composer">
+          <input
+            id="input"
+            placeholder="Décris ta configuration (ex. : 5 m de long × 6 m de haut × 1 m de large)…"
+          />
+          <button id="send">Envoyer</button>
+        </div>
+      </div>
     </div>
-  </div>
 
-  <script>
-    const $messages = document.getElementById("messages");
-    const $input = document.getElementById("input");
-    const $send = document.getElementById("send");
+    <script>
+      const $messages = document.getElementById("messages");
+      const $input = document.getElementById("input");
+      const $send = document.getElementById("send");
+      const $typing = document.getElementById("typing");
 
-    // Historique complet (user + assistant) envoyé à l’API
-    const history = [];
+      // Historique complet (user + assistant)
+      // ⚠️ Le système est géré côté serveur, ici on garde uniquement user / assistant
+      const conversation = [];
 
-    function nowTime() {
-      return new Date().toLocaleTimeString("fr-FR", {
-        hour: "2-digit",
-        minute: "2-digit",
-      });
-    }
-
-    function addMessage(role, content) {
-      const box = document.createElement("div");
-      box.className = "msg " + role;
-
-      const bubble = document.createElement("div");
-      bubble.className = "bubble " + role;
-
-      if (role === "assistant" && /<table[\s\S]*<\/table>/i.test(content)) {
-        // si le backend renvoie un tableau HTML
-        const match = content.match(/<table[\s\S]*<\/table>/i);
-        const after = content.slice(
-          content.indexOf(match[0]) + match[0].length
-        );
-        const p = after.match(/<p[\s\S]*?<\/p>/i);
-        bubble.innerHTML =
-          '<div class="assistant-content">' +
-          match[0] +
-          (p ? p[0] : "") +
-          "</div>";
-      } else {
-        bubble.textContent = content;
-      }
-
-      box.appendChild(bubble);
-
-      if (role !== "system") {
-        const stamp = document.createElement("div");
-        stamp.className = "time";
-        stamp.textContent = nowTime();
-        box.appendChild(stamp);
-      }
-
-      $messages.appendChild(box);
-      $messages.scrollTop = $messages.scrollHeight;
-
-      // On stocke uniquement user + assistant pour l’API
-      if (role === "user" || role === "assistant") {
-        history.push({ role, content });
-      }
-    }
-
-    // Message d’accueil (affichage uniquement)
-    addMessage(
-      "system",
-      "Je suis ton collègue de chantier numérique. Donne-moi la longueur et la hauteur que tu veux, et je t’aiderai à générer une liste de matériel ALTRAD METRIX prête à commander."
-    );
-
-    async function sendMessage() {
-      const text = $input.value.trim();
-      if (!text || $send.disabled) return;
-
-      addMessage("user", text);
-      $input.value = "";
-      $input.focus();
-
-      $send.disabled = true;
-
-      try {
-        // on envoie tout l’historique (user + assistant) au backend
-        const payload = {
-          messages: history.map((m) => ({
-            role: m.role,
-            content: m.content,
-          })),
-        };
-
-        const resp = await fetch("/api/chat", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload),
+      function nowTime() {
+        return new Date().toLocaleTimeString("fr-FR", {
+          hour: "2-digit",
+          minute: "2-digit",
         });
+      }
 
-        if (!resp.ok) {
-          throw new Error("Réponse serveur " + resp.status);
+      function renderMessage(role, content) {
+        const row = document.createElement("div");
+        row.className = "row " + role;
+
+        const bubble = document.createElement("div");
+        bubble.className = "bubble " + role + (role === "assistant" ? " assistant-content" : "");
+        bubble.textContent = content;
+
+        row.appendChild(bubble);
+
+        if (role !== "system") {
+          const t = document.createElement("div");
+          t.className = "time";
+          t.textContent = nowTime();
+          row.appendChild(t);
         }
 
-        const answerText = await resp.text();
-        addMessage("assistant", answerText || "Réponse vide du serveur.");
-      } catch (err) {
-        console.error(err);
-        addMessage(
-          "assistant",
-          "Désolé, une erreur est survenue lors de l'appel au serveur."
-        );
-      } finally {
-        $send.disabled = false;
-      }
-    }
+        $messages.appendChild(row);
+        $messages.scrollTop = $messages.scrollHeight;
 
-    $send.addEventListener("click", sendMessage);
-    $input.addEventListener("keydown", (e) => {
-      if (e.key === "Enter") {
-        e.preventDefault();
-        sendMessage();
+        return bubble;
       }
-    });
-  </script>
-</body>
+
+      function addMessage(role, content) {
+        const msg = { role, content };
+        conversation.push(msg);
+        const bubble = renderMessage(role, content);
+        return { msg, bubble };
+      }
+
+      // Message d’accueil "système"
+      renderMessage(
+        "system",
+        "Bienvenue ! Je t’aide à configurer ton échafaudage ALTRAD METRIX (liste de matériel prête à commander)."
+      );
+
+      async function callApi(userText) {
+        // Ajoute le message utilisateur dans l’historique
+        addMessage("user", userText);
+
+        // Prépare le payload : on envoie TOUT l’historique sauf le message système local
+        const messagesForApi = conversation.map((m) => ({
+          role: m.role,
+          content: m.content,
+        }));
+
+        // Bulle assistant vide pour le streaming
+        const { msg: assistantMsg, bubble } = addMessage("assistant", "");
+        $typing.style.display = "block";
+        $send.disabled = true;
+
+        try {
+          const resp = await fetch("/api/chat", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ messages: messagesForApi }),
+          });
+
+          if (!resp.ok || !resp.body) {
+            throw new Error("Erreur API: " + resp.status);
+          }
+
+          const reader = resp.body.getReader();
+          const decoder = new TextDecoder();
+          let acc = "";
+
+          while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+            acc += decoder.decode(value, { stream: true });
+
+            bubble.textContent = acc;
+            assistantMsg.content = acc;
+            $messages.scrollTop = $messages.scrollHeight;
+          }
+        } catch (err) {
+          bubble.textContent =
+            "Désolé, une erreur est survenue lors de la génération de la réponse.";
+          assistantMsg.content = bubble.textContent;
+          console.error(err);
+        } finally {
+          $typing.style.display = "none";
+          $send.disabled = false;
+        }
+      }
+
+      function send() {
+        const v = $input.value.trim();
+        if (!v) return;
+        $input.value = "";
+        callApi(v);
+      }
+
+      $send.addEventListener("click", send);
+      $input.addEventListener("keydown", (e) => {
+        if (e.key === "Enter") {
+          e.preventDefault();
+          send();
+        }
+      });
+    </script>
+  </body>
 </html>
