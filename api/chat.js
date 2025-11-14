@@ -5,9 +5,9 @@ const client = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
-// --- Utilitaires -----------------------------------------
+// --------- Utilitaires simples ---------
 
-// Cherche longueur + hauteur dans un texte
+// extrait longueur + hauteur depuis un texte utilisateur
 function extractLengthHeight(text) {
   if (!text) return null;
   const lower = text.toLowerCase();
@@ -27,7 +27,7 @@ function extractLengthHeight(text) {
   return { L, H };
 }
 
-// Dernières dimensions trouvées dans l’HISTORIQUE complet
+// dernière paire longueur / hauteur trouvée dans l’historique
 function findLastDims(messages) {
   let last = null;
   for (const m of messages) {
@@ -38,40 +38,35 @@ function findLastDims(messages) {
   return last;
 }
 
-// Détection si on parle de surface (m²)
+// détecte une réponse de l’utilisateur concernant la protection façade côté mur
+function findProtectionAnswer(messages) {
+  let last = null;
+  for (const m of messages) {
+    if (!m || m.role !== "user" || !m.content) continue;
+    const t = m.content.toLowerCase();
+
+    if (
+      t.includes("protection") ||
+      t.includes("façade") ||
+      t.includes("facade") ||
+      t.includes("côté mur") ||
+      t.includes("cote mur")
+    ) {
+      last = m.content.trim();
+    } else if ((t === "oui" || t === "non") && last === null) {
+      // "oui"/"non" juste après la question
+      last = m.content.trim();
+    }
+  }
+  return last;
+}
+
+// l’utilisateur parle de m²
 function mentionsSurface(text) {
   if (!text) return false;
   const lower = text.toLowerCase();
-  return /\b(m²|m2|mètre carré|metre carré|mètres carrés|metres carres|surface)\b/.test(
-    lower
-  );
+  return /\b(m²|m2|metre carré|mètre carré|mètres carrés|surface)\b/.test(lower);
 }
-
-// Détection d’une réponse sur la protection côté mur
-function detectProtectionAnswer(messages) {
-  let lastAnswer = null;
-  for (const m of messages) {
-    if (!m || m.role !== "user" || !m.content) continue;
-    const txt = m.content.toLowerCase();
-    if (
-      txt.includes("protection") ||
-      txt.includes("façade") ||
-      txt.includes("facade") ||
-      txt.includes("côté mur") ||
-      txt.includes("cote mur")
-    ) {
-      lastAnswer = m.content.trim();
-    } else if (
-      (txt === "oui" || txt === "non") &&
-      lastAnswer === null // réponse courte juste après la question
-    ) {
-      lastAnswer = m.content.trim();
-    }
-  }
-  return lastAnswer;
-}
-
-// ----------------------------------------------------------
 
 module.exports = async (req, res) => {
   if (req.method !== "POST") {
@@ -92,111 +87,109 @@ module.exports = async (req, res) => {
       (m) => m && m.role === "user"
     );
 
-    const extraSystemMessages = [];
+    // 1) On regarde tout l’historique pour récupérer longueur, hauteur, protection
+    const dims = findLastDims(userMessages);
+    const protAnswer = findProtectionAnswer(userMessages);
 
-    // 1) Dernières dimensions connues dans TOUT l'historique
-    const dimsHist = findLastDims(userMessages);
-    if (dimsHist) {
-      extraSystemMessages.push({
-        role: "system",
-        content: `Dans l'historique, l'utilisateur a déjà donné les dimensions suivantes : longueur = ${dimsHist.L} m et hauteur = ${dimsHist.H} m. 
-Ce sont les dimensions de référence pour toute la suite de la conversation. 
-Tu ne dois plus prétendre qu'elles manquent ni les redemander, même si le dernier message utilisateur est juste "oui" ou "non".`,
-      });
-    }
-
-    // 2) Si le dernier message parle de surface en m²
-    if (lastUserMsg && mentionsSurface(lastUserMsg.content)) {
-      extraSystemMessages.push({
-        role: "system",
-        content:
-          "Le dernier message utilisateur parle de surface (m²). Tu dois lui demander de CHOISIR lui-même la longueur ET la hauteur, et tu n'as pas le droit de les déduire automatiquement.",
-      });
-    }
-
-    // 3) Réponse à la question 'protection façade côté mur'
-    const prot = detectProtectionAnswer(userMessages);
-    if (prot) {
-      extraSystemMessages.push({
-        role: "system",
-        content: `L'utilisateur a déjà répondu à la question sur la protection de la façade côté mur avec : "${prot}". 
-Tu ne dois plus reposer cette question et tu dois configurer l'échafaudage en respectant cette réponse.`,
-      });
-    }
-
-    // --- GROS system prompt métier ---------------------------------
-    const mainSystemMessage = {
+    // 2) Gros message système métier (rappel des règles)
+    const baseSystem = {
       role: "system",
       content: `
 Tu es **ALTRAD Assistant METRIX**, collègue chantier expérimenté.
-Tu aides les collaborateurs à préparer une **liste de matériel ALTRAD METRIX** complète, cohérente et sécurisée, prête à être commandée (catalogue Peduzzi).
-Tu réponds toujours en français, ton concret et bienveillant.
+Tu aides à préparer une **liste de matériel ALTRAD METRIX** prête à être commandée.
+Tu réponds toujours en français, ton concret, simple et bienveillant.
 
-INTERDICTIONS IMPORTANTES :
-- Tu ne dois JAMAIS écrire ni paraphraser la phrase :
-  "Pour calculer correctement, donne-moi la longueur ET la hauteur que tu veux."
-- Tu ne dois JAMAIS écrire "X m de long" ou "Y m de haut". 
-  Tu dois toujours utiliser de vraies valeurs chiffrées (par ex. "5 m de long et 6 m de haut") ou reformuler sans ces placeholders.
-- Si des dimensions (longueur et hauteur) existent déjà dans l'historique, tu les considères comme **définitives** et tu ne dis plus qu'elles manquent.
+IMPORTANT :
+- Tu ne dois jamais dire : "donne-moi la longueur ET la hauteur" si ces informations sont déjà présentes dans l'historique.
+- Tu ne dois jamais écrire "X m" ou "Y m" : utilise toujours les vraies valeurs en mètres.
+- Si tu connais déjà la longueur et la hauteur depuis l'historique, tu les considères comme définitives.
 
-=====================
-RÈGLES D'ÉCHAFAUDAGE (résumé)
-=====================
-- Type : échafaudage **droit de façade** uniquement.
-- Largeur par défaut : **1,00 m**, sauf si l'utilisateur demande explicitement 0,70 m.
+Rappels techniques (résumé) :
+- Échafaudage droit de façade uniquement.
+- Largeur par défaut : 1,00 m (sauf demande explicite pour 0,70 m).
 - Hauteur de niveau : 2,00 m.
 - Travées = ceil(longueur / 2,5).
 - Niveaux = ceil(hauteur / 2).
+- 1 plancher trappe par niveau.
+- Garde-corps, plinthes et stabilisation selon les règles ALTRAD METRIX.
+- Protection façade côté mur : obligatoire si l'espace > 20 cm.
 
-- Niveau de base :
-  - Socles à vérin 0,61 m.
-  - Embases de départ.
-  - Poteaux 1,00 m.
-  - 3 planchers acier 2,50 x 0,30 m pour supporter la première échelle.
-
-- Niveaux supérieurs :
-  - Poteaux 2,00 m.
-  - 1 plancher trappe par niveau.
-  - Planchers acier pour compléter la largeur (1,00 m ou 0,70 m).
-
-=====================
-PROTECTION CÔTÉ MUR
-=====================
-- Tant que la réponse n'est pas connue, tu demandes UNE SEULE FOIS :
-  "Souhaites-tu protéger la façade côté mur ? ⚠️ Obligatoire si l'espace entre l'échafaudage et le mur est supérieur à 20 cm."
-- Si l'utilisateur a déjà répondu (ex. "oui", "non pas de protection façade"), tu n'y reviens plus.
-
-=====================
-GRUTAGE
-=====================
-- Si le besoin de grutage n'a pas encore été traité, tu demandes UNE SEULE FOIS :
-  "Prévois-tu de lever ou gruter l'échafaudage ?"
-- Si OUI : tu ajoutes les accessoires de levage adaptés et tu rappelles de bien verrouiller embases et poteaux.
-
-=====================
-ANTI-BOUCLE QUESTIONS
-=====================
-En te basant sur TOUT l'historique reçu dans "messages" :
-1. Si aucune longueur n'est connue, tu demandes la longueur.
-2. Sinon si aucune hauteur n'est connue, tu demandes la hauteur.
-3. Sinon si la largeur n'est pas précisée, tu proposes 1,00 m par défaut ou 0,70 m si besoin.
-4. Sinon si la protection côté mur n'est pas connue, tu poses la question.
-5. Sinon si le grutage n'est pas connu, tu poses la question.
-6. Sinon, tu arrêtes de poser des questions et tu calcules directement la liste de matériel.
-
-=====================
-LISTE FINALE
-=====================
-Quand toutes les infos nécessaires sont connues :
-- Tu produis un tableau **Markdown** avec les colonnes :
+Affichage final :
+- Tu produis un tableau **Markdown** :
   Référence | Désignation | Qté | Poids unitaire (kg) | Poids total (kg)
-- Puis une ligne : "TOTAL GÉNÉRAL : XXX kg".
+- Puis "TOTAL GÉNÉRAL : XXX kg".
 - Tu termines par :
   "Voici ta liste complète. Tu peux maintenant saisir ta commande sur ta tablette ou dans le Back Office Peduzzi."
       `,
     };
 
-    const messages = [mainSystemMessage, ...extraSystemMessages, ...userMessages];
+    // 3) CAS 1 : l’utilisateur vient avec une surface en m²
+    if (lastUserMsg && mentionsSurface(lastUserMsg.content)) {
+      const messages = [
+        baseSystem,
+        {
+          role: "user",
+          content: `
+L'utilisateur parle de surface : "${lastUserMsg.content}".
+
+Ta réponse doit être uniquement :
+- Une phrase courte où tu lui expliques que pour calculer l'échafaudage,
+  il doit te donner lui-même la longueur ET la hauteur souhaitées.
+- Tu ne proposes pas de valeurs par défaut, tu ne les déduis pas.
+- Tu ne fais aucun calcul, pas de liste de matériel.
+          `.trim(),
+        },
+      ];
+
+      const completion = await client.chat.completions.create({
+        model: "gpt-4o-mini",
+        messages,
+      });
+
+      res.status(200).send(completion.choices[0].message.content);
+      return;
+    }
+
+    // 4) CAS 2 : on a déjà longueur + hauteur + réponse façade côté mur
+    if (dims && protAnswer) {
+      const L = dims.L;
+      const H = dims.H;
+
+      const synthUser = {
+        role: "user",
+        content: `
+Configuration complète à traiter :
+
+- Type : échafaudage droit de façade.
+- Longueur : ${L} m.
+- Hauteur : ${H} m.
+- Largeur : 1,00 m (standard).
+- Protection façade côté mur : ${protAnswer}.
+- L'utilisateur a déjà donné ces informations plus haut dans la conversation.
+- Tu dois maintenant arrêter de poser des questions répétitives
+  et passer au calcul de la liste de matériel.
+
+Consigne :
+- Tu peux poser UNE SEULE question complémentaire courte si vraiment un point de sécurité est indispensable (par ex. grutage).
+- Mais dans la même réponse, tu DOIS quand même proposer une liste de matériel complète basée sur les informations présentes.
+- Tu ne redis pas "peux-tu me donner la longueur ou la hauteur".
+- Tu calcules toutes les quantités et tu affiches le tableau Markdown demandé.
+        `.trim(),
+      };
+
+      const messages = [baseSystem, synthUser];
+
+      const completion = await client.chat.completions.create({
+        model: "gpt-4o-mini",
+        messages,
+      });
+
+      res.status(200).send(completion.choices[0].message.content);
+      return;
+    }
+
+    // 5) CAS 3 : flux normal (début de discussion ou infos manquantes)
+    const messages = [baseSystem, ...userMessages];
 
     const completion = await client.chat.completions.create({
       model: "gpt-4o-mini",
@@ -210,6 +203,4 @@ Quand toutes les infos nécessaires sont connues :
     res.status(500).json({ error: "Erreur interne API chat" });
   }
 };
-
-
 
