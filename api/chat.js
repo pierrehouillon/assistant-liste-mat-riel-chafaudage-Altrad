@@ -5,24 +5,22 @@ const client = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
-// --------- Utilitaires simples ---------
+/* ---------- UTILITAIRES ---------- */
 
+// détecte une mention de surface (m²)
 function mentionsSurface(text) {
   if (!text) return false;
   const lower = text.toLowerCase();
   return /\b(m²|m2|metre carré|mètre carré|mètres carrés|surface)\b/.test(lower);
 }
 
-// extrait longueur + hauteur depuis un texte utilisateur (ex. "5m de long par 6m de haut")
-function extractLengthHeight(text) {
+// extrait longueur + hauteur depuis un texte utilisateur
+// ex : "échafaudage de 5 m de long par 6 m de haut"
+function extractDimsFromText(text) {
   if (!text) return null;
   const lower = text.toLowerCase();
 
-  // on veut "long" + "haut" dans le même message
-  const hasLong = lower.includes("long") || lower.includes("longueur");
-  const hasHaut = lower.includes("haut") || lower.includes("hauteur");
-  if (!hasLong || !hasHaut) return null;
-
+  // on cherche 2 nombres + "m"
   const regex = /(\d+(?:[.,]\d+)?)\s*m\b/g;
   const matches = [...lower.matchAll(regex)];
   if (matches.length < 2) return null;
@@ -34,72 +32,49 @@ function extractLengthHeight(text) {
   return { L, H };
 }
 
-// Parcourt tous les messages user pour trouver la DERNIÈRE paire (L,H)
-function findDims(messages) {
-  const users = messages.filter(
-    (m) => m && m.role === "user" && typeof m.content === "string"
-  );
+// récupère les dernières dimensions connues dans tout l'historique
+function findLastDims(messages) {
   let last = null;
-  for (const m of users) {
-    const d = extractLengthHeight(m.content);
-    if (d) last = d;
+  for (const m of messages) {
+    if (!m || m.role !== "user" || !m.content) continue;
+    const dims = extractDimsFromText(m.content);
+    if (dims) last = dims;
   }
   return last;
 }
 
-// Cherche la dernière réponse OUI/NON à la question "protection façade côté mur ?"
-function findProtectionAnswer(messages) {
-  let lastProtQuestionIndex = -1;
-
-  messages.forEach((m, idx) => {
-    if (
-      m &&
-      m.role === "assistant" &&
-      typeof m.content === "string" &&
-      m.content.includes("Souhaites-tu protéger la façade côté mur")
-    ) {
-      lastProtQuestionIndex = idx;
-    }
-  });
-
-  if (lastProtQuestionIndex === -1) return null;
-
-  for (let i = messages.length - 1; i > lastProtQuestionIndex; i--) {
-    const m = messages[i];
-    if (!m || m.role !== "user" || typeof m.content !== "string") continue;
-    const t = m.content.trim().toLowerCase();
-    if (t.startsWith("oui")) return "oui";
-    if (t.startsWith("non")) return "non";
-  }
-  return null;
+// détecte si une question "protection façade côté mur" a déjà été posée
+function isProtectionQuestion(msg) {
+  if (!msg || msg.role !== "assistant" || !msg.content) return false;
+  return /protéger la façade côté mur/i.test(msg.content);
 }
 
-// Cherche la dernière réponse OUI/NON à la question "Souhaites-tu gruter ton échafaudage ?"
-function findGrutageAnswer(messages) {
-  let lastQuestionIndex = -1;
-
-  messages.forEach((m, idx) => {
-    if (
-      m &&
-      m.role === "assistant" &&
-      typeof m.content === "string" &&
-      m.content.includes("Souhaites-tu gruter ton échafaudage")
-    ) {
-      lastQuestionIndex = idx;
-    }
-  });
-
-  if (lastQuestionIndex === -1) return null;
-
-  for (let i = messages.length - 1; i > lastQuestionIndex; i--) {
-    const m = messages[i];
-    if (!m || m.role !== "user" || typeof m.content !== "string") continue;
-    const t = m.content.trim().toLowerCase();
-    if (t.startsWith("oui")) return "oui";
-    if (t.startsWith("non")) return "non";
-  }
-  return null;
+// détecte si une question "grutage" a déjà été posée
+function isGrutageQuestion(msg) {
+  if (!msg || msg.role !== "assistant" || !msg.content) return false;
+  return /gruter ton échafaudage/i.test(msg.content);
 }
+
+// dernière réponse OUI / NON après une certaine question
+function getLastYesNoAfter(messages, questionPredicate) {
+  let asked = false;
+  let answer = null;
+
+  for (const m of messages) {
+    if (questionPredicate(m)) {
+      asked = true;
+      continue;
+    }
+    if (asked && m.role === "user" && m.content) {
+      const t = m.content.toLowerCase();
+      if (/\boui\b/.test(t)) answer = "OUI";
+      else if (/\bnon\b/.test(t)) answer = "NON";
+    }
+  }
+  return answer;
+}
+
+/* ---------- HANDLER PRINCIPAL ---------- */
 
 module.exports = async (req, res) => {
   if (req.method !== "POST") {
@@ -109,135 +84,157 @@ module.exports = async (req, res) => {
 
   try {
     const body = req.body || {};
-    const history = Array.isArray(body.messages) ? body.messages : [];
+    const allMessages = body.messages || [];
 
-    if (history.length === 0) {
+    if (!Array.isArray(allMessages) || allMessages.length === 0) {
       res.status(400).json({ error: "messages manquants" });
       return;
     }
 
-    const lastUserMsg = [...history].reverse().find(
-      (m) => m && m.role === "user"
+    // on ne garde que les messages user/assistant (on ignore le system du front)
+    const convo = allMessages.filter(
+      (m) => m && (m.role === "user" || m.role === "assistant")
     );
 
-    const dims = findDims(history);                // { L, H } ou null
-    const prot = findProtectionAnswer(history);    // "oui", "non" ou null
-    const grut = findGrutageAnswer(history);       // "oui", "non" ou null
+    const lastUserMsg = [...convo].reverse().find((m) => m.role === "user");
 
-    // ---------------------------------------------
-    // 1) Cas surface (m²) sans dimensions explicites
-    // ---------------------------------------------
-    if (lastUserMsg && mentionsSurface(lastUserMsg.content) && !dims) {
-      res
-        .status(200)
-        .send(
-          "Pour calculer correctement, donne-moi la longueur **ET** la hauteur que tu veux. Je ne les déduis jamais automatiquement à partir des m²."
-        );
+    // 1) dimensions (longueur / hauteur)
+    const dims = findLastDims(convo);
+    const protectionAsked = convo.some(isProtectionQuestion);
+    const grutageAsked = convo.some(isGrutageQuestion);
+
+    const protectionAnswer = getLastYesNoAfter(convo, isProtectionQuestion);
+    const grutageAnswer = getLastYesNoAfter(convo, isGrutageQuestion);
+
+    // --- ETAPE 1 : l’utilisateur parle en m² sans dimensions ---
+    if (!dims && lastUserMsg && mentionsSurface(lastUserMsg.content)) {
+      res.status(200).send(
+        "Pour calculer correctement l’échafaudage à partir d’une surface en m², " +
+          "donne-moi la **longueur** en mètres ET la **hauteur** en mètres que tu veux. " +
+          "Je ne les déduis jamais automatiquement."
+      );
       return;
     }
 
-    // ---------------------------------------------
-    // 2) Si on n’a pas encore longueur / hauteur -> on demande
-    // ---------------------------------------------
+    // --- ETAPE 2 : si aucune dimension connue → on les demande ---
     if (!dims) {
-      res
-        .status(200)
-        .send(
-          "Pour que je calcule ton échafaudage, donne-moi la longueur **et** la hauteur de ta façade (en mètres). Exemple : 5 m de long par 6 m de haut."
-        );
+      res.status(200).send(
+        "Pour commencer, donne-moi la longueur **et** la hauteur de l’échafaudage droit de façade que tu prépares " +
+          "(ex. : 5 m de long par 6 m de haut)."
+      );
       return;
     }
 
     const { L, H } = dims;
 
-    // ---------------------------------------------
-    // 3) Question obligatoire : protection côté mur
-    //    (une seule fois tant qu’on n’a pas la réponse)
-    // ---------------------------------------------
-    if (!prot) {
-      res
-        .status(200)
-        .send(
-          `OK, on part sur un échafaudage droit de façade de ${L} m de long et ${H} m de haut.\n\nSouhaites-tu protéger la façade côté mur ?\n⚠️ Obligatoire si l’espace entre l’échafaudage et le mur est supérieur à 20 cm.`
-        );
+    // --- ETAPE 3 : question sécurité façade côté mur ---
+    if (!protectionAsked) {
+      res.status(200).send(
+        `OK, on part sur un échafaudage droit de façade de ${L} m de long et ${H} m de haut.\n\n` +
+          "Souhaites-tu protéger la façade côté mur ?\n" +
+          "⚠️ Obligatoire si l’espace entre l’échafaudage et le mur est supérieur à 20 cm."
+      );
       return;
     }
 
-    // ---------------------------------------------
-    // 4) Question grutage (une seule fois)
-    // ---------------------------------------------
-    if (!grut) {
-      res
-        .status(200)
-        .send(
-          "Parfait, j’ai noté ta réponse pour la protection côté mur.\n\nDernière question sécurité : souhaites-tu **gruter** ton échafaudage ?"
-        );
+    if (protectionAsked && !protectionAnswer) {
+      res.status(200).send(
+        "Merci de me confirmer la protection façade côté mur par **OUI** ou **NON**, " +
+          "pour que je puisse continuer la configuration."
+      );
       return;
     }
 
-    // ---------------------------------------------
-    // 5) Tous les paramètres sont connus -> on calcule la liste
-    //    via OpenAI (une seule réponse, plus de questions)
-    // ---------------------------------------------
-    const systemMessage = {
-      role: "system",
-      content: `
+    // --- ETAPE 4 : question grutage ---
+    if (!grutageAsked) {
+      res.status(200).send(
+        "Parfait, j’ai noté la réponse pour la protection côté mur.\n\n" +
+          "Dernière question sécurité : **souhaites-tu gruter ton échafaudage ?**"
+      );
+      return;
+    }
+
+    if (grutageAsked && !grutageAnswer) {
+      res.status(200).send(
+        "Peux-tu me confirmer si tu souhaites **gruter** ton échafaudage ? Réponds simplement par **OUI** ou **NON**."
+      );
+      return;
+    }
+
+    // --- ETAPE 5 : toutes les infos sont connues → génération de la liste de matériel ---
+    const systemPrompt = `
 Tu es ALTRAD Assistant, expert échafaudages terrain spécialisé dans la gamme ALTRAD METRIX.
-Tu aides à préparer un échafaudage droit de façade complet, sécurisé et prêt à être commandé.
+Tu aides un collaborateur à préparer un échafaudage **droit de façade** complet, sécurisé et prêt à être commandé.
 
-Tu appliques les règles suivantes (résumé) :
+Tu appliques les règles suivantes (ne les réexplique pas en détail, applique-les) :
 
-- Type : échafaudage droit de façade.
 - Largeur par défaut : 1,00 m.
 - Hauteur de niveau : 2,00 m.
-- Travées = ceil(longueur / 2,5).
-- Niveaux = ceil(hauteur / 2).
-- Poteaux 1 m (ALTKPT1) au départ.
-- Poteaux 2 m (ALTKPT2) pour les niveaux supérieurs.
-- 1 plancher trappe ALTKPE5 par niveau.
-- Planchers acier ALTKMC5 pour compléter chaque niveau.
-- Garde-corps 2,50 m ALTKGH5, garde-corps 1,00 m ALTKGH2, plinthes ALTKPI5.
-- Cales bois ALTL99P : 1 par socle + 1 par stabilisateur.
-- Stabilisation : stabilisateurs ALT00S75 ou ancrages selon la hauteur.
-- Protection façade côté mur : si OUI, on double garde-corps 2,50 m et plinthes 2,50 m côté mur.
-- Grutage : si OUI, on ajoute crochets de levage ALTRLEV, boulons ALTKB12 et rappelle le verrouillage.
+- travées = ceil(longueur / 2.5)
+- niveaux = ceil(hauteur / 2)
 
-Tu réponds toujours en français, ton concret de collègue chantier.
-Tu n’ajoutes plus de questions : tu calcules directement la liste pour les paramètres fournis.
-Tu termines toujours par :
-"Tu peux maintenant saisir ta commande sur ta tablette ou dans le back-office Peduzzi."
-      `,
-    };
+Structure de base (références ALTRAD METRIX) :
+- Socles à vérin ALTASV5 : 3 × travées
+- Embases ALTKEMB : 3 × travées
+- Cales bois ALTL99P : 1 par socle + 1 par stabilisateur
+- Lisses perpendiculaires 1,00 m ALTKLC2 : 3 + 3 × niveaux
+- Poteaux 1,00 m ALTKPT1 : 3 × travées (départ)
+- Poteaux 2,00 m ALTKPT2 : 3 × travées × niveaux
 
-    const userMessage = {
-      role: "user",
-      content: `
-Paramètres d'échafaudage à traiter :
+Planchers et accès :
+- Plancher trappe 2,50 × 0,60 m ALTKPE5 : 1 par niveau
+- Plancher acier 2,50 × 0,30 m ALTKMC5 : niveaux × [3 × (travées − 1) + 1] + 3
+
+Garde-corps & plinthes :
+- Garde-corps 2,50 m ALTKGH5 : 3 × travées (×2 si protection mur = OUI)
+- Garde-corps 1,00 m avec plinthe intégrée ALTKGH2 : 2 × niveaux
+- Plinthes 2,50 m ALTKPI5 : = ALTKGH5 (×2 si protection mur = OUI)
+
+Autres éléments :
+- Lisse 2,50 m protection échelle ALTKLC5 : = niveaux
+- Diagonale verticale ALTKDV5 : 1
+- Stabilisateurs ALT00S75 : selon la hauteur (≤ 6 m → 3 stabilisateurs)
+- Cales bois sup. ALTL99P : +1 par stabilisateur
+
+Grutage (si OUI) :
+- 4 × ALTRLEV (crochet de levage)
+- ALTKFSV = nombre de socles
+- ALTKB12 = boulons 12 × 60 mm pour les poteaux
+- Boulons 12 × 70 mm pour les embases (tu les indiques dans le texte, pas dans le tableau si tu n’as pas de référence précise).
+
+Affichage demandé :
+1. Un récapitulatif très court des paramètres retenus (longueur, hauteur, travées, niveaux, protection mur OUI/NON, grutage OUI/NON).
+2. Un **tableau Markdown** avec les colonnes :
+   Référence | Désignation | Qté | Poids unitaire (kg) | Poids total (kg)
+
+3. Une ligne "TOTAL" avec le poids total estimé.
+4. Si grutage = OUI, un petit rappel texte de verrouillage des boulons.
+5. Tu termines toujours par :
+   "Tu peux maintenant saisir ta commande sur ta tablette ou dans le back-office Peduzzi."
+
+Tu ne poses **aucune question** : toutes les informations nécessaires ont déjà été fournies.
+Ta réponse est autonome et définitive pour cette configuration.
+    `.trim();
+
+    const userPrompt = `
+Configuration à traiter :
 
 - Type : échafaudage droit de façade.
 - Longueur : ${L} m.
 - Hauteur : ${H} m.
 - Largeur : 1,00 m.
-- Protection façade côté mur : ${prot.toUpperCase()}.
-- Grutage : ${grut.toUpperCase()}.
+- Protection façade côté mur : ${protectionAnswer}.
+- Grutage : ${grutageAnswer}.
 
-Tâche :
-
-1. Rappelle brièvement la configuration (travées, niveaux, protection mur, grutage).
-2. Calcule toutes les quantités de matériel conformément aux règles ALTRAD METRIX.
-3. Affiche une "Liste complète de matériel" sous forme de tableau Markdown avec les colonnes :
-   Référence | Désignation | Qté | Poids unitaire (kg) | Poids total (kg)
-4. Calcule et affiche le TOTAL GÉNÉRAL en kg.
-5. Si grutage = OUI, ajoute un rappel sécurité sur le verrouillage des embases (boulon 12×70) et des poteaux (boulon 12×60) avant levage.
-6. Termine par :
-   "Voici ta liste complète d’échafaudage ALTRAD METRIX droit de façade, conforme et prête à la commande.
-   Tu peux maintenant saisir ta commande sur ta tablette ou dans le back-office Peduzzi."
-      `.trim(),
-    };
+Applique strictement les règles données dans le message système pour calculer la liste de matériel ALTRAD METRIX et le poids total estimé.
+    `.trim();
 
     const completion = await client.chat.completions.create({
       model: "gpt-4o-mini",
-      messages: [systemMessage, userMessage],
+      messages: [
+        { role: "system", content: systemPrompt },
+        { role: "user", content: userPrompt },
+      ],
     });
 
     const answer = completion.choices[0].message.content || "";
@@ -247,4 +244,3 @@ Tâche :
     res.status(500).json({ error: "Erreur interne API chat" });
   }
 };
-
