@@ -2,8 +2,9 @@
 import OpenAI from "openai";
 
 const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
-const ASST_ID = process.env.ASST_ID; // Assistant ALTRAD METRIX
+const ASST_ID = process.env.ASST_ID; // Assistant Échafaudage ALTRAD METRIX
 
+// CORS simple
 function setCors(res) {
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
@@ -26,7 +27,7 @@ async function readJsonBody(req) {
   }
 }
 
-// Nettoyage des références [1], Sources:, etc.
+// Nettoyage des petites références [1], Sources:, etc.
 function cleanAnswer(text = "") {
   return (
     text
@@ -64,7 +65,7 @@ export default async function handler(req, res) {
 
     let threadId = incomingThreadId || null;
 
-    // 1) Nouveau thread si pas fourni (Nouveau chantier)
+    // 1) Nouveau thread si pas de threadId → nouveau chantier
     if (!threadId) {
       const created = await client.beta.threads.create();
       threadId = created.id;
@@ -88,7 +89,7 @@ export default async function handler(req, res) {
       });
     }
 
-    // 4) Dernier message assistant
+    // 4) Dernière réponse assistant
     const msgs = await client.beta.threads.messages.list(threadId, {
       order: "desc",
       limit: 5,
