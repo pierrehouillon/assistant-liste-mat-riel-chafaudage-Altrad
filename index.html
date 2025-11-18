@@ -126,19 +126,18 @@
         <button id="send">Envoyer</button>
       </div>
       <div class="hint">
-        Tu peux lancer un nouveau calcul en posant simplement une nouvelle question ; le fil reste mémorisé tant que tu ne changes pas d’onglet.
+        Tu peux poser plusieurs questions à la suite, le contexte est gardé tant que tu restes sur la page.
       </div>
     </div>
   </div>
 
   <script>
-    const API_URL = "/api/ask"; // ⬅️ on passe bien par ton endpoint Assistant
+    const API_URL = "/api/ask"; // ⬅️ on appelle bien /api/ask
 
     const $messages = document.getElementById("messages");
     const $input = document.getElementById("input");
     const $send = document.getElementById("send");
 
-    // On mémorise le thread côté navigateur (comme pour ton QHSSE)
     let threadId = localStorage.getItem("metrix_thread") || null;
     let sending = false;
 
