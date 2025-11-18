@@ -1,169 +1,277 @@
 <!doctype html>
 <html lang="fr">
-<head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,viewport-fit=cover" />
-  <title>Assistant Échafaudage ALTRAD METRIX</title>
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      name="viewport"
+      content="width=device-width,initial-scale=1,maximum-scale=1,viewport-fit=cover"
+    />
+    <title>Assistant Échafaudage ALTRAD METRIX</title>
 
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <!-- Police Inter (comme Glide / QHSSE) -->
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap"
+      rel="stylesheet"
+    />
 
-  <style>
-    :root{
-      --gap:12px; --radius:14px; --border:#e5e7eb; --muted:#6b7280; --primary:#2563eb;
-      --bg-soft:#fafafa;
-    }
-    *{box-sizing:border-box}
-    body{
-      margin:0; padding:16px; max-width:900px;
-      font-family:'Inter',system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;
-      color:#111827; background:#ffffff; -webkit-font-smoothing:antialiased;
-    }
+    <style>
+      :root {
+        --gap: 12px;
+        --radius: 14px;
+        --border: #e5e7eb;
+        --muted: #6b7280;
+        --primary: #2563eb;
+        --bg-soft: #f9fafb;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        padding: 16px;
+        max-width: 900px;
+        font-family: "Inter", system-ui, -apple-system, Segoe UI, Roboto, Arial,
+          sans-serif;
+        color: #111827;
+        background: #ffffff;
+        -webkit-font-smoothing: antialiased;
+      }
+      h1 {
+        font-size: 22px;
+        margin: 0 0 4px;
+      }
+      .subtitle {
+        font-size: 14px;
+        color: var(--muted);
+        margin-bottom: 16px;
+      }
 
-    h1{font-size:22px;margin:0 0 4px;font-weight:600}
-    .subtitle{color:var(--muted);font-size:14px;margin-bottom:16px}
+      .topbar {
+        display: flex;
+        justify-content: flex-end;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 8px;
+      }
+      .ghost-btn {
+        appearance: none;
+        border: 1px solid var(--border);
+        background: #fff;
+        color: #111827;
+        padding: 8px 12px;
+        border-radius: 999px;
+        font-size: 14px;
+        cursor: pointer;
+      }
+      .ghost-btn:hover {
+        background: #f8f8f8;
+      }
 
-    .topbar{display:flex;justify-content:flex-end;align-items:center;gap:8px;margin-bottom:8px}
-    .ghost-btn{
-      appearance:none;border:1px solid var(--border);background:#fff;color:#111827;
-      padding:8px 12px;border-radius:999px;font-size:13px;cursor:pointer;
-    }
-    .ghost-btn:hover{background:#f3f4f6}
-
-    .flash{
-      display:none; align-items:center; gap:8px;
-      border:1px solid #d1fae5; background:#ecfdf5; color:#065f46;
-      padding:6px 10px; border-radius:999px; font-size:12px;
-      animation:fade .25s ease;
-    }
-    .flash.show{display:inline-flex}
-    @keyframes fade{from{opacity:.2;transform:translateY(-2px)}to{opacity:1;transform:none}}
-
-    .card{
-      border:1px solid var(--border); border-radius:var(--radius);
-      padding:16px; margin:12px 0; box-shadow:0 2px 4px rgba(0,0,0,.04);
-      background:#fff;
-    }
-    .row{display:flex;gap:var(--gap); align-items:center}
-
-    input{
-      flex:1; font-size:16px; padding:14px 12px; border-radius:var(--radius);
-      border:1px solid var(--border); outline:none; background:var(--bg-soft);
-      transition:border .2s, background .2s;
-    }
-    input:focus{border-color:var(--primary); background:#fff}
-
-    button.primary{
-      font-size:16px; padding:14px 18px; border-radius:var(--radius);
-      border:none; background:var(--primary); color:#fff; font-weight:500; cursor:pointer;
-      transition:background .2s;
-    }
-    button.primary:hover{background:#1d4ed8}
-
-    .answer{white-space:pre-wrap; line-height:1.5; margin-top:12px;font-size:14px}
-    .muted{color:var(--muted); font-size:14px; margin-top:10px}
-    .loading{opacity:.7}
-
-    @media (max-width:600px){
-      input,button.primary{font-size:15px}
-      .topbar{justify-content:space-between}
-      h1{font-size:19px}
-    }
-  </style>
-</head>
-<body>
-
-  <div class="topbar">
-    <span id="flash" class="flash">🆕 Nouveau chantier démarré</span>
-    <button id="newTopic" class="ghost-btn" aria-label="Nouveau chantier">Nouveau chantier</button>
-  </div>
-
-  <h1>Assistant ALTRAD METRIX</h1>
-  <p class="subtitle">
-    Je t’aide à configurer ton échafaudage ALTRAD METRIX droit de façade et à obtenir une liste de matériel prête à commander.
-  </p>
-
-  <div class="card">
-    <div class="row" style="margin-bottom:12px;">
-      <input id="q" placeholder="Ex. : échafaudage de 5 m de long par 6 m de haut, largeur 1 m…" />
-      <button id="go" class="primary">Envoyer</button>
-    </div>
-    <div id="out" class="answer muted">
-      Aucune configuration pour l’instant. Décris ton échafaudage (longueur, hauteur, contexte chantier…).
-    </div>
-  </div>
-
-  <p class="muted">
-    Les réponses utilisent la notice ALTRAD METRIX et le bon de commande interne Peduzzi, ainsi que les règles de calcul intégrées dans l’assistant.
-    À la fin, tu obtiens une liste complète de matériel avec le poids total.
-  </p>
-
-  <script>
-    const API_URL = "/api/ask";
-
-    const qEl = document.getElementById("q");
-    const goEl = document.getElementById("go");
-    const outEl = document.getElementById("out");
-    const newBtn = document.getElementById("newTopic");
-    const flash = document.getElementById("flash");
-
-    // Thread METRIX (clé différente de QHSSE)
-    let threadId = localStorage.getItem("metrix_thread") || null;
-
-    function showFlash() {
-      flash.classList.add("show");
-      setTimeout(() => flash.classList.remove("show"), 1600);
-    }
-
-    function startNewTopic() {
-      threadId = null;
-      localStorage.removeItem("metrix_thread");
-      qEl.value = "";
-      qEl.focus();
-      outEl.classList.add("muted");
-      outEl.textContent = "Nouveau chantier démarré. Décris ton échafaudage (ex. : 5 m de long × 6 m de haut).";
-      showFlash();
-    }
-
-    async function ask() {
-      const question = qEl.value.trim();
-      if (!question) return;
-
-      outEl.textContent = "⏳ Calcul de l’échafaudage et de la liste de matériel…";
-      outEl.classList.add("loading");
-
-      try {
-        const r = await fetch(API_URL, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ question, threadId })
-        });
-        const data = await r.json();
-
-        if (data?.threadId) {
-          threadId = data.threadId;
-          localStorage.setItem("metrix_thread", threadId);
+      .flash {
+        display: none;
+        align-items: center;
+        gap: 8px;
+        border: 1px solid #d1fae5;
+        background: #ecfdf5;
+        color: #065f46;
+        padding: 8px 12px;
+        border-radius: 999px;
+        font-size: 13px;
+        animation: fade 0.25s ease;
+      }
+      .flash.show {
+        display: inline-flex;
+      }
+      @keyframes fade {
+        from {
+          opacity: 0.2;
+          transform: translateY(-2px);
         }
+        to {
+          opacity: 1;
+          transform: none;
+        }
+      }
 
-        outEl.classList.remove("muted");
-        outEl.textContent = data?.answer || "❌ Pas de réponse.";
+      .card {
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        padding: 16px;
+        margin: 12px 0;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.04);
+      }
+      .row {
+        display: flex;
+        gap: var(--gap);
+        align-items: center;
+      }
+
+      input {
+        flex: 1;
+        font-size: 16px;
+        padding: 14px 12px;
+        border-radius: var(--radius);
+        border: 1px solid var(--border);
+        outline: none;
+        background: var(--bg-soft);
+        transition: border 0.2s, background 0.2s;
+      }
+      input:focus {
+        border-color: var(--primary);
+        background: #fff;
+      }
+
+      button.primary {
+        font-size: 16px;
+        padding: 14px 18px;
+        border-radius: var(--radius);
+        border: none;
+        background: var(--primary);
+        color: #fff;
+        font-weight: 500;
+        cursor: pointer;
+        transition: background 0.2s;
+      }
+      button.primary:hover {
+        background: #1d4ed8;
+      }
+
+      .answer {
+        white-space: pre-wrap;
+        line-height: 1.5;
+        margin-top: 12px;
+      }
+      .muted {
+        color: var(--muted);
+        font-size: 14px;
+        margin-top: 10px;
+      }
+      .loading {
+        opacity: 0.7;
+      }
+
+      @media (max-width: 600px) {
+        input,
+        button.primary {
+          font-size: 15px;
+        }
+        .topbar {
+          justify-content: space-between;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Assistant ALTRAD METRIX</h1>
+    <p class="subtitle">
+      Je t’aide à configurer ton échafaudage droit de façade ALTRAD METRIX et à
+      sortir une liste de matériel prête à commander.
+    </p>
+
+    <!-- Barre discrète : bouton + confirmation -->
+    <div class="topbar">
+      <span id="flash" class="flash">🆕 Nouveau calcul démarré</span>
+      <button id="newTopic" class="ghost-btn" aria-label="Nouveau calcul">
+        Nouveau calcul
+      </button>
+    </div>
+
+    <div class="card">
+      <div class="row" style="margin-bottom: 12px">
+        <input
+          id="q"
+          placeholder="Décris ta configuration (ex. : échafaudage de 5 m de long par 6 m de haut)…"
+        />
+        <button id="go" class="primary">Envoyer</button>
+      </div>
+      <div id="out" class="answer muted">
+        Aucune configuration renseignée pour l’instant.
+      </div>
+    </div>
+
+    <p class="muted">
+      Les réponses proviennent de la notice ALTRAD METRIX et du bon de commande
+      type Peduzzi. Si l’information n’est pas présente ou est incertaine,
+      l’assistant le précise clairement.
+    </p>
+
+    <script>
+      const API_URL = "/api/ask";
+
+      const qEl = document.getElementById("q");
+      const goEl = document.getElementById("go");
+      const outEl = document.getElementById("out");
+      const newBtn = document.getElementById("newTopic");
+      const flash = document.getElementById("flash");
+
+      // On retient le thread courant en local pour enchaîner les questions
+      let threadId = localStorage.getItem("metrix_thread") || null;
+
+      function showFlash() {
+        flash.classList.add("show");
+        setTimeout(() => flash.classList.remove("show"), 1600);
+      }
+
+      function startNewTopic() {
+        threadId = null;
+        localStorage.removeItem("metrix_thread");
         qEl.value = "";
         qEl.focus();
-      } catch (e) {
-        outEl.classList.remove("muted");
-        outEl.textContent = "❌ Erreur : " + (e?.message || "requête échouée");
-      } finally {
-        outEl.classList.remove("loading");
+        outEl.classList.add("muted");
+        outEl.textContent =
+          "Nouveau calcul démarré. Donne-moi ta configuration d’échafaudage.";
+        showFlash();
       }
-    }
 
-    newBtn.addEventListener("click", startNewTopic);
-    goEl.addEventListener("click", ask);
-    qEl.addEventListener("keydown", (e)=>{ if(e.key==="Enter") ask(); });
+      async function ask() {
+        const question = qEl.value.trim();
+        if (!question) return;
 
-    // Support test ?q=
-    const u = new URL(window.location.href);
-    const initial = u.searchParams.get("q");
-    if (initial) { startNewTopic(); qEl.value = initial; ask(); }
-  </script>
-</body>
+        outEl.textContent = "⏳ Calcul et préparation de la liste de matériel…";
+        outEl.classList.add("loading");
+
+        try {
+          const r = await fetch(API_URL, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ question, threadId }),
+          });
+          const data = await r.json();
+
+          // on mémorise le thread renvoyé (pour conversation continue)
+          if (data?.threadId) {
+            threadId = data.threadId;
+            localStorage.setItem("metrix_thread", threadId);
+          }
+
+          outEl.classList.remove("muted");
+          outEl.textContent =
+            data?.answer || "❌ Aucune réponse n’a pu être générée.";
+
+          qEl.value = "";
+          qEl.focus();
+        } catch (e) {
+          outEl.classList.remove("muted");
+          outEl.textContent = "❌ Erreur : " + (e?.message || "requête échouée");
+        } finally {
+          outEl.classList.remove("loading");
+        }
+      }
+
+      newBtn.addEventListener("click", startNewTopic);
+      goEl.addEventListener("click", ask);
+      qEl.addEventListener("keydown", (e) => {
+        if (e.key === "Enter") ask();
+      });
+
+      // Support test avec ?q= dans l’URL (facultatif)
+      const u = new URL(window.location.href);
+      const initial = u.searchParams.get("q");
+      if (initial) {
+        startNewTopic();
+        qEl.value = initial;
+        ask();
+      }
+    </script>
+  </body>
 </html>
