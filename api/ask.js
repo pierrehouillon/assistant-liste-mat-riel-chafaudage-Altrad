@@ -2,7 +2,7 @@
 import OpenAI from "openai";
 
 const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
-const ASST_ID = process.env.ASST_ID; // Assistant Échafaudage ALTRAD METRIX
+const ASST_ID = process.env.ASST_ID;
 
 // CORS simple
 function setCors(res) {
@@ -11,7 +11,7 @@ function setCors(res) {
   res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
 }
 
-// Lecture JSON compatible Vercel
+// Parse body (sécurisé pour Vercel)
 async function readJsonBody(req) {
   if (req.body && typeof req.body === "object") return req.body;
   const raw = await new Promise((resolve, reject) => {
@@ -27,15 +27,20 @@ async function readJsonBody(req) {
   }
 }
 
-// Nettoyage des petites références [1], Sources:, etc.
+// Nettoie les références de sources / citations dans la réponse
 function cleanAnswer(text = "") {
   return (
     text
+      // [source: ...] ou (source ... )
       .replace(/\[source[^\]]*\]/gi, "")
       .replace(/\(source[^\)]*\)/gi, "")
+      // Lignes "Source: ..." / "Sources: ..."
       .replace(/^\s*sources?\s*:\s*.*$/gim, "")
+      // Références numérotées [1], [12]
       .replace(/(\s|^)\[\d+\](?=\s|$)/g, " ")
+      // Marques style 
       .replace(/【\d+[^】]*】/g, "")
+      // Espaces multiples / lignes vides
       .replace(/[ \t]+\n/g, "\n")
       .replace(/\n{3,}/g, "\n\n")
       .replace(/[ \t]{2,}/g, " ")
@@ -46,9 +51,8 @@ function cleanAnswer(text = "") {
 export default async function handler(req, res) {
   setCors(res);
   if (req.method === "OPTIONS") return res.status(200).end();
-  if (req.method !== "POST") {
+  if (req.method !== "POST")
     return res.status(405).json({ error: "Méthode non autorisée" });
-  }
 
   try {
     if (!process.env.OPENAI_API_KEY) {
@@ -59,37 +63,37 @@ export default async function handler(req, res) {
     }
 
     const { question, threadId: incomingThreadId } = await readJsonBody(req);
+
     if (!question || typeof question !== "string") {
       return res.status(400).json({ error: "Question manquante" });
     }
 
     let threadId = incomingThreadId || null;
 
-    // 1) Nouveau thread si pas de threadId → nouveau chantier
+    // 1) Créer un thread si besoin (nouveau sujet)
     if (!threadId) {
       const created = await client.beta.threads.create();
       threadId = created.id;
     }
 
-    // 2) Ajout du message utilisateur
+    // 2) Ajouter le message utilisateur au thread
     await client.beta.threads.messages.create(threadId, {
       role: "user",
       content: question,
     });
 
-    // 3) Run de l'assistant METRIX
+    // 3) Lancer le run sur TON assistant ALTRAD METRIX
     const run = await client.beta.threads.runs.createAndPoll(threadId, {
       assistant_id: ASST_ID,
     });
 
     if (run.status !== "completed") {
-      return res.status(200).json({
-        answer: `La réponse n'est pas complète (run: ${run.status}).`,
-        threadId,
-      });
+      return res
+        .status(200)
+        .json({ answer: `Non précisé (run: ${run.status}).`, threadId });
     }
 
-    // 4) Dernière réponse assistant
+    // 4) Récupérer la dernière réponse assistant
     const msgs = await client.beta.threads.messages.list(threadId, {
       order: "desc",
       limit: 5,
@@ -100,13 +104,13 @@ export default async function handler(req, res) {
       assistantMsg?.content
         ?.map((c) => (c.type === "text" ? c.text.value : ""))
         .join("\n")
-        .trim() || "Pas de réponse.";
+        .trim() || "Non précisé dans les documents.";
 
     const answer = cleanAnswer(rawAnswer);
 
     return res.status(200).json({ answer, threadId });
   } catch (e) {
-    console.error("ask METRIX:", e?.response?.data || e);
+    console.error("ask (Metrix):", e?.response?.data || e);
     return res.status(500).json({ error: e?.message || "Erreur serveur" });
   }
 }
