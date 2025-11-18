@@ -2,228 +2,168 @@
 <html lang="fr">
 <head>
   <meta charset="utf-8" />
-  <title>Assistant ALTRAD METRIX</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,viewport-fit=cover" />
+  <title>Assistant Échafaudage ALTRAD METRIX</title>
+
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+
   <style>
-    * { box-sizing: border-box; }
-    html, body {
-      margin: 0;
-      padding: 0;
-      height: 100%;
-      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
-        Roboto, Helvetica, Arial, sans-serif;
-      background: #f3f4f6;
-      color: #111827;
+    :root{
+      --gap:12px; --radius:14px; --border:#e5e7eb; --muted:#6b7280; --primary:#2563eb;
+      --bg-soft:#fafafa;
     }
-    body {
-      display: flex;
-      justify-content: center;
+    *{box-sizing:border-box}
+    body{
+      margin:0; padding:16px; max-width:900px;
+      font-family:'Inter',system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;
+      color:#111827; background:#ffffff; -webkit-font-smoothing:antialiased;
     }
-    .wrap {
-      width: 100%;
-      max-width: 900px;
-      padding: 16px;
+
+    h1{font-size:22px;margin:0 0 4px;font-weight:600}
+    .subtitle{color:var(--muted);font-size:14px;margin-bottom:16px}
+
+    .topbar{display:flex;justify-content:flex-end;align-items:center;gap:8px;margin-bottom:8px}
+    .ghost-btn{
+      appearance:none;border:1px solid var(--border);background:#fff;color:#111827;
+      padding:8px 12px;border-radius:999px;font-size:13px;cursor:pointer;
     }
-    h1 {
-      font-size: 1.5rem;
-      font-weight: 600;
-      margin: 0 0 4px;
+    .ghost-btn:hover{background:#f3f4f6}
+
+    .flash{
+      display:none; align-items:center; gap:8px;
+      border:1px solid #d1fae5; background:#ecfdf5; color:#065f46;
+      padding:6px 10px; border-radius:999px; font-size:12px;
+      animation:fade .25s ease;
     }
-    .subtitle {
-      font-size: 0.9rem;
-      color: #4b5563;
-      padding: 8px 12px;
-      border-radius: 10px;
-      background: #e5e7eb;
-      margin-bottom: 16px;
+    .flash.show{display:inline-flex}
+    @keyframes fade{from{opacity:.2;transform:translateY(-2px)}to{opacity:1;transform:none}}
+
+    .card{
+      border:1px solid var(--border); border-radius:var(--radius);
+      padding:16px; margin:12px 0; box-shadow:0 2px 4px rgba(0,0,0,.04);
+      background:#fff;
     }
-    .messages {
-      background: #ffffff;
-      border-radius: 16px;
-      padding: 12px;
-      box-shadow: 0 1px 3px rgba(15, 23, 42, 0.08);
-      height: calc(100vh - 190px);
-      overflow-y: auto;
+    .row{display:flex;gap:var(--gap); align-items:center}
+
+    input{
+      flex:1; font-size:16px; padding:14px 12px; border-radius:var(--radius);
+      border:1px solid var(--border); outline:none; background:var(--bg-soft);
+      transition:border .2s, background .2s;
     }
-    .msg {
-      display: flex;
-      margin-bottom: 8px;
+    input:focus{border-color:var(--primary); background:#fff}
+
+    button.primary{
+      font-size:16px; padding:14px 18px; border-radius:var(--radius);
+      border:none; background:var(--primary); color:#fff; font-weight:500; cursor:pointer;
+      transition:background .2s;
     }
-    .msg.user {
-      justify-content: flex-end;
-    }
-    .msg.assistant {
-      justify-content: flex-start;
-    }
-    .bubble {
-      max-width: 80%;
-      padding: 10px 12px;
-      border-radius: 14px;
-      font-size: 0.95rem;
-      line-height: 1.4;
-      white-space: pre-wrap;
-    }
-    .msg.user .bubble {
-      background: #2563eb;
-      color: #ffffff;
-      border-bottom-right-radius: 4px;
-    }
-    .msg.assistant .bubble {
-      background: #f9fafb;
-      border: 1px solid #e5e7eb;
-      color: #111827;
-      border-bottom-left-radius: 4px;
-    }
-    .bubble strong { font-weight: 600; }
-    .bubble code {
-      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas;
-      font-size: 0.85rem;
-      background: #e5e7eb;
-      padding: 2px 4px;
-      border-radius: 4px;
-    }
-    .composer {
-      display: flex;
-      gap: 8px;
-      margin-top: 10px;
-    }
-    .composer input {
-      flex: 1;
-      border-radius: 999px;
-      border: 1px solid #d1d5db;
-      padding: 10px 14px;
-      font-size: 0.95rem;
-      outline: none;
-    }
-    .composer input:focus {
-      border-color: #2563eb;
-      box-shadow: 0 0 0 1px #2563eb22;
-    }
-    .composer button {
-      border-radius: 999px;
-      border: none;
-      background: #2563eb;
-      color: #ffffff;
-      padding: 10px 18px;
-      font-size: 0.95rem;
-      cursor: pointer;
-    }
-    .composer button:disabled {
-      opacity: 0.6;
-      cursor: default;
-    }
-    .info {
-      margin-top: 6px;
-      font-size: 0.75rem;
-      color: #6b7280;
+    button.primary:hover{background:#1d4ed8}
+
+    .answer{white-space:pre-wrap; line-height:1.5; margin-top:12px;font-size:14px}
+    .muted{color:var(--muted); font-size:14px; margin-top:10px}
+    .loading{opacity:.7}
+
+    @media (max-width:600px){
+      input,button.primary{font-size:15px}
+      .topbar{justify-content:space-between}
+      h1{font-size:19px}
     }
   </style>
 </head>
 <body>
-  <div class="wrap">
-    <h1>Assistant ALTRAD METRIX</h1>
-    <div class="subtitle">
-      Bienvenue ! Je t’aide à configurer ton échafaudage ALTRAD METRIX
-      (liste de matériel prête à commander).
-    </div>
 
-    <div id="messages" class="messages"></div>
+  <div class="topbar">
+    <span id="flash" class="flash">🆕 Nouveau chantier démarré</span>
+    <button id="newTopic" class="ghost-btn" aria-label="Nouveau chantier">Nouveau chantier</button>
+  </div>
 
-    <div class="composer">
-      <input
-        id="input"
-        autocomplete="off"
-        placeholder="Décris ta configuration (ex. : 5 m × 6 m × 1 m)…"
-      />
-      <button id="send">Envoyer</button>
+  <h1>Assistant ALTRAD METRIX</h1>
+  <p class="subtitle">
+    Je t’aide à configurer ton échafaudage ALTRAD METRIX droit de façade et à obtenir une liste de matériel prête à commander.
+  </p>
+
+  <div class="card">
+    <div class="row" style="margin-bottom:12px;">
+      <input id="q" placeholder="Ex. : échafaudage de 5 m de long par 6 m de haut, largeur 1 m…" />
+      <button id="go" class="primary">Envoyer</button>
     </div>
-    <div class="info">
-      Astuce : commence par donner la longueur et la hauteur (par exemple :
-      <strong>5 m de long par 6 m de haut</strong>).
+    <div id="out" class="answer muted">
+      Aucune configuration pour l’instant. Décris ton échafaudage (longueur, hauteur, contexte chantier…).
     </div>
   </div>
 
+  <p class="muted">
+    Les réponses utilisent la notice ALTRAD METRIX et le bon de commande interne Peduzzi, ainsi que les règles de calcul intégrées dans l’assistant.
+    À la fin, tu obtiens une liste complète de matériel avec le poids total.
+  </p>
+
   <script>
-    const $messages = document.getElementById("messages");
-    const $input = document.getElementById("input");
-    const $send = document.getElementById("send");
+    const API_URL = "/api/ask";
 
-    // 👉 Historique complet envoyé à l’API à chaque appel
-    //    (user + assistant)
-    const history = [];
+    const qEl = document.getElementById("q");
+    const goEl = document.getElementById("go");
+    const outEl = document.getElementById("out");
+    const newBtn = document.getElementById("newTopic");
+    const flash = document.getElementById("flash");
 
-    function scrollBottom() {
-      $messages.scrollTop = $messages.scrollHeight;
+    // Thread METRIX (clé différente de QHSSE)
+    let threadId = localStorage.getItem("metrix_thread") || null;
+
+    function showFlash() {
+      flash.classList.add("show");
+      setTimeout(() => flash.classList.remove("show"), 1600);
     }
 
-    function addMessage(role, content) {
-      const box = document.createElement("div");
-      box.className = "msg " + role;
-
-      const bubble = document.createElement("div");
-      bubble.className = "bubble";
-      bubble.textContent = content;
-
-      box.appendChild(bubble);
-      $messages.appendChild(box);
-      scrollBottom();
-
-      // on stocke dans l’historique pour le serveur
-      history.push({ role, content });
+    function startNewTopic() {
+      threadId = null;
+      localStorage.removeItem("metrix_thread");
+      qEl.value = "";
+      qEl.focus();
+      outEl.classList.add("muted");
+      outEl.textContent = "Nouveau chantier démarré. Décris ton échafaudage (ex. : 5 m de long × 6 m de haut).";
+      showFlash();
     }
 
-    // message de bienvenue (vu comme "assistant" pour l’historique,
-    // mais il ne gênera pas la logique serveur)
-    addMessage(
-      "assistant",
-      "Bonjour, je suis ton assistant ALTRAD METRIX. " +
-        "Commence par me donner la longueur et la hauteur de ton échafaudage " +
-        "(ex. : 5 m de long par 6 m de haut)."
-    );
+    async function ask() {
+      const question = qEl.value.trim();
+      if (!question) return;
 
-    async function sendMessage() {
-      const text = $input.value.trim();
-      if (!text) return;
-
-      // affiche le message utilisateur
-      addMessage("user", text);
-      $input.value = "";
-      $input.focus();
-
-      $send.disabled = true;
+      outEl.textContent = "⏳ Calcul de l’échafaudage et de la liste de matériel…";
+      outEl.classList.add("loading");
 
       try {
-        const resp = await fetch("/api/chat", {
+        const r = await fetch(API_URL, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ messages: history }),
+          body: JSON.stringify({ question, threadId })
         });
+        const data = await r.json();
 
-        if (!resp.ok) {
-          throw new Error("Réponse HTTP " + resp.status);
+        if (data?.threadId) {
+          threadId = data.threadId;
+          localStorage.setItem("metrix_thread", threadId);
         }
 
-        const answer = await resp.text();
-        addMessage("assistant", answer || "(réponse vide)");
-      } catch (err) {
-        console.error("Erreur API :", err);
-        addMessage(
-          "assistant",
-          "Désolé, une erreur est survenue avec le serveur. " +
-            "Répète ta demande un peu plus tard ou vérifie la connexion."
-        );
+        outEl.classList.remove("muted");
+        outEl.textContent = data?.answer || "❌ Pas de réponse.";
+        qEl.value = "";
+        qEl.focus();
+      } catch (e) {
+        outEl.classList.remove("muted");
+        outEl.textContent = "❌ Erreur : " + (e?.message || "requête échouée");
       } finally {
-        $send.disabled = false;
+        outEl.classList.remove("loading");
       }
     }
 
-    $send.addEventListener("click", sendMessage);
-    $input.addEventListener("keydown", (e) => {
-      if (e.key === "Enter") {
-        e.preventDefault();
-        sendMessage();
-      }
-    });
+    newBtn.addEventListener("click", startNewTopic);
+    goEl.addEventListener("click", ask);
+    qEl.addEventListener("keydown", (e)=>{ if(e.key==="Enter") ask(); });
+
+    // Support test ?q=
+    const u = new URL(window.location.href);
+    const initial = u.searchParams.get("q");
+    if (initial) { startNewTopic(); qEl.value = initial; ask(); }
   </script>
 </body>
 </html>
