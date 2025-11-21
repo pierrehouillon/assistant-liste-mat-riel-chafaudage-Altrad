@@ -14,6 +14,7 @@
       font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
     }
     * { box-sizing: border-box; }
+
     .wrap {
       max-width: 900px;
       margin: 0 auto;
@@ -29,6 +30,7 @@
       color: #6b7280;
       margin-bottom: 16px;
     }
+
     .messages {
       display: flex;
       flex-direction: column;
@@ -44,6 +46,7 @@
     }
     .msg.user { align-self: flex-end; text-align: right; }
     .msg.assistant, .msg.system { align-self: flex-start; }
+
     .bubble {
       border-radius: 14px;
       padding: 10px 12px;
@@ -126,14 +129,13 @@
         <button id="send">Envoyer</button>
       </div>
       <div class="hint">
-        Tu peux poser plusieurs questions à la suite, le contexte est gardé tant que tu restes sur la page.
+        Le contexte est gardé tant que tu restes sur la page.
       </div>
     </div>
   </div>
 
   <script>
-    const API_URL = "/api/ask"; // ⬅️ on appelle bien /api/ask
-
+    const API_URL = "/api/ask";   // ⬅️ IMPORTANT : on appelle bien /api/ask
     const $messages = document.getElementById("messages");
     const $input = document.getElementById("input");
     const $send = document.getElementById("send");
@@ -151,14 +153,18 @@
     function addMessage(role, content) {
       const box = document.createElement("div");
       box.className = "msg " + role;
+
       const bubble = document.createElement("div");
       bubble.className = "bubble " + role;
       bubble.textContent = content;
+
       const stamp = document.createElement("div");
       stamp.className = "time";
       stamp.textContent = time();
+
       box.appendChild(bubble);
       if (role !== "system") box.appendChild(stamp);
+
       $messages.appendChild(box);
       $messages.scrollTop = $messages.scrollHeight;
     }
@@ -181,13 +187,13 @@
       $send.disabled = true;
 
       try {
-        const r = await fetch(API_URL, {
+        const resp = await fetch(API_URL, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ question: v, threadId }),
         });
 
-        const data = await r.json();
+        const data = await resp.json();
 
         if (data.threadId) {
           threadId = data.threadId;
@@ -197,14 +203,14 @@
         if (data.answer) {
           addMessage("assistant", data.answer);
         } else if (data.error) {
-          addMessage("assistant", "Erreur: " + data.error);
+          addMessage("assistant", "Erreur API : " + data.error);
         } else {
           addMessage("assistant", "❌ Aucune réponse n’a pu être générée.");
         }
       } catch (e) {
         addMessage(
           "assistant",
-          "❌ Erreur de communication avec l’API. Réessaie dans un instant."
+          "❌ Erreur de communication avec le serveur. Réessaie dans un instant."
         );
       } finally {
         sending = false;
