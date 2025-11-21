@@ -2,20 +2,19 @@
 <html lang="fr">
 <head>
   <meta charset="utf-8" />
-  <title>Assistant ALTRAD METRIX</title>
   <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,viewport-fit=cover" />
+  <title>Assistant ALTRAD METRIX</title>
+
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
 
   <style>
     :root {
-      --bg: #f9fafb;
-      --text: #111827;
-      --muted: #6b7280;
-      --border: #e5e7eb;
-      --assistant-bg: #ffffff;
-      --user-bg: #2563eb;
-      --user-text: #ffffff;
-      --system-bg: #f3f4f6;
+      --gap: 12px;
       --radius: 14px;
+      --border: #e5e7eb;
+      --muted: #6b7280;
+      --primary: #2563eb;
+      --bg-soft: #f9fafb;
     }
 
     * { box-sizing: border-box; }
@@ -24,317 +23,374 @@
       margin: 0;
       padding: 0;
       height: 100%;
-      background: var(--bg);
-      color: var(--text);
-      font-family: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    }
+
+    body {
+      font-family: 'Inter', system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+      color: #111827;
+      background: #ffffff;
       -webkit-font-smoothing: antialiased;
     }
 
-    /* App = colonne, taille écran, centrée sur grands écrans */
-    body {
-      display: flex;
-      justify-content: center;
-    }
-
     .app {
-      width: 100%;
-      max-width: 800px;
-      height: 100%;
+      min-height: 100vh;
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 10px 10px 18px;
       display: flex;
       flex-direction: column;
-      padding: 8px 12px 10px;
+      gap: 10px;
+      background: #f9fafb;
     }
 
-    /* Petit bandeau de bienvenue (sous-titre Glide) */
-    .subtitle {
+    .welcome {
       font-size: 13px;
       color: var(--muted);
-      background: #eef2ff;
+      background: #e5edff;
       border-radius: 999px;
-      padding: 8px 12px;
-      margin-bottom: 6px;
+      padding: 6px 10px;
+      max-width: 500px;
       line-height: 1.4;
     }
 
-    /* Zone messages scrollable */
-    #messages {
-      flex: 1;
-      overflow-y: auto;
-      padding: 8px 0 6px;
+    .top-row {
       display: flex;
-      flex-direction: column;
       gap: 8px;
+      align-items: stretch;
     }
 
-    .msg {
-      display: flex;
-      flex-direction: column;
-      max-width: 90%;
-    }
-
-    .msg.user   { align-self: flex-end; }
-    .msg.assistant,
-    .msg.system { align-self: flex-start; }
-
-    .bubble {
-      border-radius: var(--radius);
-      padding: 9px 12px;
+    .top-row input {
+      flex: 1;
       font-size: 15px;
-      line-height: 1.4;
-      white-space: pre-wrap;
-      word-wrap: break-word;
-      box-shadow: 0 1px 2px rgba(0,0,0,.04);
-    }
-
-    .bubble.user {
-      background: var(--user-bg);
-      color: var(--user-text);
-      border-radius: 18px 18px 4px 18px;
-    }
-
-    .bubble.assistant {
-      background: var(--assistant-bg);
-      border: 1px solid var(--border);
-      border-radius: 18px 18px 18px 4px;
-    }
-
-    .bubble.system {
-      background: var(--system-bg);
-      color: var(--muted);
+      padding: 12px 12px;
       border-radius: 999px;
-      box-shadow: none;
-      font-size: 13px;
+      border: 1px solid var(--border);
+      background: #ffffff;
+      outline: none;
+      transition: border 0.2s, box-shadow 0.2s;
     }
 
-    .time {
-      margin-top: 2px;
+    .top-row input:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 1px rgba(37,99,235,0.15);
+    }
+
+    .top-row button {
+      font-size: 15px;
+      padding: 0 16px;
+      border-radius: 999px;
+      border: none;
+      background: var(--primary);
+      color: #ffffff;
+      font-weight: 500;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: background 0.2s;
+    }
+
+    .top-row button:hover {
+      background: #1d4ed8;
+    }
+
+    .new-topic {
+      margin-left: auto;
+      font-size: 12px;
+      padding: 6px 10px;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      background: #ffffff;
+      color: #111827;
+      cursor: pointer;
+    }
+
+    .flash {
+      font-size: 12px;
+      color: #065f46;
+      background: #ecfdf5;
+      border-radius: 999px;
+      padding: 4px 8px;
+      display: none;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .flash.show {
+      display: inline-flex;
+    }
+
+    .card {
+      flex: 1;
+      border-radius: 16px;
+      border: 1px solid var(--border);
+      background: #ffffff;
+      padding: 14px 12px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.04);
+      overflow-y: auto;
+    }
+
+    .answer {
+      font-size: 14px;
+      line-height: 1.5;
+      white-space: pre-wrap;
+    }
+
+    .answer.muted {
+      color: var(--muted);
+    }
+
+    .loading {
+      opacity: 0.7;
+    }
+
+    .muted-text {
       font-size: 11px;
       color: var(--muted);
-      padding: 0 4px;
+      text-align: center;
+      margin-top: 4px;
+      line-height: 1.4;
     }
 
-    /* Rendu tableau "markdown" de la liste de matériel */
-    .assistant-content table {
+    /* Tablette / smartphone : on réduit un peu les marges */
+    @media (max-width: 600px) {
+      .app {
+        padding: 8px 8px 14px;
+      }
+      .top-row input {
+        font-size: 14px;
+        padding-inline: 10px;
+      }
+      .top-row button {
+        font-size: 14px;
+        padding-inline: 12px;
+      }
+    }
+
+    /* Styles tableau de matériel */
+    .mat-table {
+      margin-top: 8px;
+      border-radius: 12px;
+      border: 1px solid #e5e7eb;
+      overflow: hidden;
+      background: #ffffff;
+    }
+
+    .mat-table table {
       width: 100%;
       border-collapse: collapse;
       font-size: 13px;
-      background: #fff;
-      border: 1px solid var(--border);
-      border-radius: 10px;
-      overflow: hidden;
-      box-shadow: 0 1px 2px rgba(0,0,0,.04);
-      margin: 4px 0;
     }
-    .assistant-content th,
-    .assistant-content td {
+
+    .mat-table thead th {
+      background: #f3f4f6;
+      font-weight: 600;
       padding: 6px 8px;
-      border-top: 1px solid #f1f5f9;
+      border-bottom: 1px solid #e5e7eb;
       text-align: left;
-      vertical-align: middle;
+      white-space: nowrap;
     }
-    .assistant-content thead th {
-      background:#f3f4f6;
-      font-weight:600;
+
+    .mat-table tbody td {
+      padding: 6px 8px;
+      border-top: 1px solid #e5e7eb;
     }
-    .assistant-content .num {
+
+    .mat-table tbody tr:nth-child(even) td {
+      background: #fafafa;
+    }
+
+    .mat-table .num {
       text-align: right;
       white-space: nowrap;
-    }
-
-    /* Barre de composition collée en bas */
-    .composer {
-      display: flex;
-      gap: 8px;
-      padding-top: 6px;
-      padding-bottom: 4px;
-      background: var(--bg);
-      position: sticky;
-      bottom: 0;
-    }
-
-    #input {
-      flex: 1;
-      border-radius: 999px;
-      border: 1px solid var(--border);
-      padding: 10px 14px;
-      font-size: 14px;
-      background: #ffffff;
-      outline: none;
-    }
-    #input:focus { border-color: #2563eb; }
-
-    #send {
-      border-radius: 999px;
-      border: none;
-      padding: 10px 16px;
-      font-size: 14px;
-      background: #2563eb;
-      color: #fff;
-      cursor: pointer;
-      white-space: nowrap;
-    }
-    #send:disabled {
-      opacity: .6;
-      cursor: default;
-    }
-
-    .small-note {
-      font-size: 11px;
-      color: var(--muted);
-      margin-top: 2px;
-      text-align: center;
-    }
-
-    @media (max-width: 600px) {
-      .app { padding: 6px 8px 8px; }
-      #input, #send { font-size: 14px; }
-      .bubble { font-size: 14px; }
     }
   </style>
 </head>
 <body>
   <div class="app">
-    <div class="subtitle">
-      Bienvenue ! Je t’aide à configurer ton échafaudage ALTRAD METRIX (liste de matériel prête à commander).
+    <div style="display:flex;align-items:center;gap:8px;justify-content:space-between;">
+      <div class="welcome">
+        Bienvenue ! Je t’aide à configurer ton échafaudage ALTRAD METRIX (liste de
+        matériel prête à commander).
+      </div>
+      <div>
+        <div id="flash" class="flash">🆕 Nouveau sujet démarré</div>
+      </div>
     </div>
 
-    <div id="messages"></div>
-
-    <div class="composer">
-      <input
-        id="input"
-        placeholder="Décris ta configuration (ex. : 5 m × 6 m × 1 m)…"
-      />
+    <div class="top-row">
+      <input id="q" placeholder="Décris ta configuration (ex. : 5 m × 6 m × 1 m)…" />
       <button id="send">Envoyer</button>
     </div>
 
-    <div class="small-note">
-      Les listes sont calculées à partir des règles ALTRAD METRIX et du bon de commande interne.
+    <button id="newTopic" class="new-topic">Nouveau sujet</button>
+
+    <div class="card">
+      <div id="out" class="answer muted">
+        Aucune question posée pour l’instant.
+      </div>
     </div>
+
+    <p class="muted-text">
+      Les listes sont calculées à partir des règles ALTRAD METRIX et du bon de commande interne.
+      Vérifie toujours la conformité avant commande.
+    </p>
   </div>
 
   <script>
     const API_URL = "/api/chat";
-    const $messages = document.getElementById("messages");
-    const $input = document.getElementById("input");
-    const $send = document.getElementById("send");
 
-    // on garde le thread en session pour la webview
-    let threadId = sessionStorage.getItem("metrix_thread") || null;
-    let sending = false;
+    const qEl = document.getElementById("q");
+    const sendEl = document.getElementById("send");
+    const outEl = document.getElementById("out");
+    const flashEl = document.getElementById("flash");
+    const newBtn = document.getElementById("newTopic");
 
-    function time() {
-      return new Date().toLocaleTimeString("fr-FR", {
-        hour: "2-digit",
-        minute: "2-digit",
-      });
+    // On mémorise le thread pour garder le contexte côté assistant
+    let threadId = localStorage.getItem("metrix_thread") || null;
+
+    function showFlash() {
+      flashEl.classList.add("show");
+      setTimeout(() => flashEl.classList.remove("show"), 1400);
     }
 
-    function addMessage(role, content, isHtml = false) {
-      const box = document.createElement("div");
-      box.className = "msg " + role;
-
-      const bubble = document.createElement("div");
-      bubble.className = "bubble " + role;
-
-      if (role === "assistant" && isHtml) {
-        bubble.innerHTML = content;
-      } else {
-        bubble.textContent = content;
-      }
-
-      box.appendChild(bubble);
-
-      if (role !== "system") {
-        const stamp = document.createElement("div");
-        stamp.className = "time";
-        stamp.textContent = time();
-        box.appendChild(stamp);
-      }
-
-      $messages.appendChild(box);
-      $messages.scrollTop = $messages.scrollHeight;
-      return bubble;
+    function startNewTopic() {
+      threadId = null;
+      localStorage.removeItem("metrix_thread");
+      qEl.value = "";
+      qEl.focus();
+      outEl.classList.add("muted");
+      outEl.textContent = "Nouveau sujet démarré. Décris ton échafaudage pour commencer.";
+      showFlash();
     }
 
-    // message système de départ
-    addMessage(
-      "system",
-      "Bienvenue ! Je t’aide à configurer ton échafaudage ALTRAD METRIX (liste de matériel prête à commander)."
-    );
+    // Convertit le 1er tableau Markdown trouvé en vrai <table>
+    function renderWithTable(text) {
+      if (!text || typeof text !== "string") {
+        outEl.textContent = text || "";
+        return;
+      }
 
-    async function send() {
-      const text = $input.value.trim();
-      if (!text || sending) return;
+      const lines = text.split("\n");
+      let start = -1;
+      let end = -1;
 
-      // message utilisateur
-      addMessage("user", text);
-      $input.value = "";
-      $input.focus();
+      for (let i = 0; i < lines.length; i++) {
+        if (lines[i].trim().startsWith("|")) {
+          if (start === -1) start = i;
+          end = i;
+        } else if (start !== -1) {
+          break;
+        }
+      }
 
-      // placeholder assistant
-      const placeholder = addMessage("assistant", "Calcul en cours…");
-      sending = true;
-      $send.disabled = true;
+      if (start === -1 || end <= start) {
+        outEl.textContent = text;
+        return;
+      }
+
+      const before = lines.slice(0, start).join("\n").trim();
+      const tableLines = lines.slice(start, end + 1);
+      const after = lines.slice(end + 1).join("\n").trim();
+
+      const rows = tableLines
+        .map(l => l.trim())
+        .filter(l => l.startsWith("|"))
+        .map(l => l.replace(/^\|/, "").replace(/\|$/, "").split("|").map(c => c.trim()));
+
+      if (rows.length < 2) {
+        outEl.textContent = text;
+        return;
+      }
+
+      const header = rows[0];
+      let bodyRows = rows.slice(1);
+
+      // Si la 2e ligne est une ligne d'alignement Markdown (---)
+      if (bodyRows.length && bodyRows[0].every(c => /^:?-{3,}:?$/.test(c))) {
+        bodyRows = bodyRows.slice(1);
+      }
+
+      let thead = "<tr>" + header.map(h => `<th>${h}</th>`).join("") + "</tr>";
+      const tbody = bodyRows.map(r => {
+        return "<tr>" + r.map(c => {
+          const isNum = /^-?\d+([.,]\d+)?\s*(kg)?$/.test(c);
+          const cls = isNum ? "num" : "";
+          return `<td class="${cls}">${c}</td>`;
+        }).join("") + "</tr>";
+      }).join("");
+
+      const tableHtml = `
+        <div class="mat-table">
+          <table>
+            <thead>${thead}</thead>
+            <tbody>${tbody}</tbody>
+          </table>
+        </div>
+      `;
+
+      let html = "";
+      if (before) html += `<p>${before.replace(/\n/g, "<br>")}</p>`;
+      html += tableHtml;
+      if (after) html += `<p style="margin-top:8px;">${after.replace(/\n/g, "<br>")}</p>`;
+
+      outEl.innerHTML = html;
+    }
+
+    async function ask() {
+      const question = qEl.value.trim();
+      if (!question) return;
+
+      outEl.classList.add("loading");
+      outEl.classList.add("muted");
+      outEl.textContent = "⏳ Calcul de ta configuration…";
 
       try {
-        const body = { question: text };
-        if (threadId) body.threadId = threadId;
-
-        const resp = await fetch(API_URL, {
+        const r = await fetch(API_URL, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(body),
+          body: JSON.stringify({ question, threadId })
         });
 
-        const raw = await resp.text();
+        const data = await r.json().catch(() => null);
+        let answer = "";
 
-        let answerText = raw;
-        let htmlMode = false;
-
-        try {
-          const data = JSON.parse(raw);
+        if (data && typeof data === "object") {
+          answer = data.answer || data.result || JSON.stringify(data);
           if (data.threadId) {
             threadId = data.threadId;
-            sessionStorage.setItem("metrix_thread", threadId);
+            localStorage.setItem("metrix_thread", threadId);
           }
-          if (typeof data.answer === "string") {
-            answerText = data.answer;
-          }
-        } catch {
-          // pas du JSON, on laisse answerText = raw
+        } else if (typeof data === "string") {
+          answer = data;
+        } else {
+          answer = "Réponse vide.";
         }
 
-        // Si l'assistant renvoie un <table> HTML, on l'affiche en HTML,
-        // sinon on garde le texte brut.
-        if (/<table[\s\S]*<\/table>/i.test(answerText)) {
-          const match = answerText.match(/<table[\s\S]*<\/table>/i);
-          const after = answerText.slice(
-            answerText.indexOf(match[0]) + match[0].length
-          );
-          const p = after.match(/<p[\s\S]*?<\/p>/i);
-          placeholder.innerHTML =
-            '<div class="assistant-content">' +
-            match[0] +
-            (p ? p[0] : "") +
-            "</div>";
-        } else {
-          placeholder.textContent = answerText;
-        }
+        outEl.classList.remove("muted");
+        renderWithTable(answer);
+
+        qEl.value = "";
+        qEl.focus();
       } catch (e) {
-        placeholder.textContent =
-          "Désolé, une erreur est survenue. Réessaie dans un instant.";
-        console.error(e);
+        outEl.classList.remove("muted");
+        outEl.textContent = "❌ Erreur : " + (e?.message || "requête échouée");
       } finally {
-        sending = false;
-        $send.disabled = false;
+        outEl.classList.remove("loading");
       }
     }
 
-    $send.addEventListener("click", send);
-    $input.addEventListener("keydown", (e) => {
-      if (e.key === "Enter") send();
-    });
+    sendEl.addEventListener("click", ask);
+    qEl.addEventListener("keydown", (e) => { if (e.key === "Enter") ask(); });
+    newBtn.addEventListener("click", startNewTopic);
+
+    // Support test: ?q=... dans l’URL
+    const u = new URL(window.location.href);
+    const initial = u.searchParams.get("q");
+    if (initial) {
+      startNewTopic();
+      qEl.value = initial;
+      ask();
+    }
   </script>
 </body>
 </html>
+
