@@ -1,473 +1,340 @@
 <!doctype html>
 <html lang="fr">
-  <head>
-    <meta charset="utf-8" />
-    <title>Assistant ALTRAD METRIX</title>
-    <meta
-      name="viewport"
-      content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover"
-    />
+<head>
+  <meta charset="utf-8" />
+  <title>Assistant ALTRAD METRIX</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,viewport-fit=cover" />
 
-    <style>
-      :root {
-        --bg: #f9fafb;
-        --fg: #111827;
-        --bubble-user: #2563eb;
-        --bubble-assistant: #ffffff;
-        --bubble-system: #f3f4f6;
-        --border: #e5e7eb;
-        --muted: #6b7280;
-        --radius: 18px;
-      }
+  <style>
+    :root {
+      --bg: #f9fafb;
+      --text: #111827;
+      --muted: #6b7280;
+      --border: #e5e7eb;
+      --assistant-bg: #ffffff;
+      --user-bg: #2563eb;
+      --user-text: #ffffff;
+      --system-bg: #f3f4f6;
+      --radius: 14px;
+    }
 
-      * {
-        box-sizing: border-box;
-      }
+    * { box-sizing: border-box; }
 
-      html,
-      body {
-        margin: 0;
-        padding: 0;
-        height: 100%;
-        background: var(--bg);
-        color: var(--fg);
-        font-family: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica,
-          Arial, sans-serif;
-        -webkit-font-smoothing: antialiased;
-      }
+    html, body {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+      background: var(--bg);
+      color: var(--text);
+      font-family: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      -webkit-font-smoothing: antialiased;
+    }
 
-      body {
-        display: flex;
-        justify-content: center;
-      }
+    /* App = colonne, taille écran, centrée sur grands écrans */
+    body {
+      display: flex;
+      justify-content: center;
+    }
 
-      .wrap {
-        max-width: 880px;
-        width: 100%;
-        padding: 16px;
-        display: flex;
-        flex-direction: column;
-        gap: 12px;
-      }
+    .app {
+      width: 100%;
+      max-width: 800px;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      padding: 8px 12px 10px;
+    }
 
-      header {
-        border-radius: 16px;
-        background: #eef2ff;
-        padding: 14px 16px;
-        font-size: 14px;
-        line-height: 1.4;
-        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.03);
-      }
+    /* Petit bandeau de bienvenue (sous-titre Glide) */
+    .subtitle {
+      font-size: 13px;
+      color: var(--muted);
+      background: #eef2ff;
+      border-radius: 999px;
+      padding: 8px 12px;
+      margin-bottom: 6px;
+      line-height: 1.4;
+    }
 
-      header h1 {
-        margin: 0 0 4px;
-        font-size: 20px;
-        font-weight: 600;
-      }
+    /* Zone messages scrollable */
+    #messages {
+      flex: 1;
+      overflow-y: auto;
+      padding: 8px 0 6px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
 
-      #messages {
-        flex: 1;
-        display: flex;
-        flex-direction: column;
-        gap: 10px;
-        overflow-y: auto;
-        padding-bottom: 8px;
-      }
+    .msg {
+      display: flex;
+      flex-direction: column;
+      max-width: 90%;
+    }
 
-      .msg {
-        display: flex;
-        flex-direction: column;
-        max-width: 100%;
-      }
+    .msg.user   { align-self: flex-end; }
+    .msg.assistant,
+    .msg.system { align-self: flex-start; }
 
-      .msg.user {
-        align-items: flex-end;
-      }
+    .bubble {
+      border-radius: var(--radius);
+      padding: 9px 12px;
+      font-size: 15px;
+      line-height: 1.4;
+      white-space: pre-wrap;
+      word-wrap: break-word;
+      box-shadow: 0 1px 2px rgba(0,0,0,.04);
+    }
 
-      .msg.assistant,
-      .msg.system {
-        align-items: flex-start;
-      }
+    .bubble.user {
+      background: var(--user-bg);
+      color: var(--user-text);
+      border-radius: 18px 18px 4px 18px;
+    }
 
-      .bubble {
-        padding: 10px 14px;
-        border-radius: var(--radius);
-        max-width: 80%;
-        white-space: pre-wrap;
-        line-height: 1.4;
-        font-size: 14px;
-        word-break: break-word;
-      }
+    .bubble.assistant {
+      background: var(--assistant-bg);
+      border: 1px solid var(--border);
+      border-radius: 18px 18px 18px 4px;
+    }
 
-      .bubble.user {
-        background: var(--bubble-user);
-        color: #fff;
-        border-bottom-right-radius: 4px;
-      }
+    .bubble.system {
+      background: var(--system-bg);
+      color: var(--muted);
+      border-radius: 999px;
+      box-shadow: none;
+      font-size: 13px;
+    }
 
-      .bubble.assistant {
-        background: var(--bubble-assistant);
-        color: var(--fg);
-        border: 1px solid var(--border);
-        border-bottom-left-radius: 4px;
-        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
-      }
+    .time {
+      margin-top: 2px;
+      font-size: 11px;
+      color: var(--muted);
+      padding: 0 4px;
+    }
 
-      .bubble.system {
-        background: var(--bubble-system);
-        color: var(--muted);
-        font-style: italic;
-        border-radius: 14px;
-        max-width: 90%;
-      }
+    /* Rendu tableau "markdown" de la liste de matériel */
+    .assistant-content table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      overflow: hidden;
+      box-shadow: 0 1px 2px rgba(0,0,0,.04);
+      margin: 4px 0;
+    }
+    .assistant-content th,
+    .assistant-content td {
+      padding: 6px 8px;
+      border-top: 1px solid #f1f5f9;
+      text-align: left;
+      vertical-align: middle;
+    }
+    .assistant-content thead th {
+      background:#f3f4f6;
+      font-weight:600;
+    }
+    .assistant-content .num {
+      text-align: right;
+      white-space: nowrap;
+    }
 
-      .time {
-        font-size: 11px;
-        color: var(--muted);
-        margin-top: 2px;
-        padding: 0 4px;
-      }
+    /* Barre de composition collée en bas */
+    .composer {
+      display: flex;
+      gap: 8px;
+      padding-top: 6px;
+      padding-bottom: 4px;
+      background: var(--bg);
+      position: sticky;
+      bottom: 0;
+    }
 
-      .composer {
-        position: sticky;
-        bottom: 0;
-        background: linear-gradient(
-          to top,
-          rgba(249, 250, 251, 1),
-          rgba(249, 250, 251, 0.7),
-          transparent
-        );
-        padding-top: 8px;
-      }
+    #input {
+      flex: 1;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      padding: 10px 14px;
+      font-size: 14px;
+      background: #ffffff;
+      outline: none;
+    }
+    #input:focus { border-color: #2563eb; }
 
-      .composer-inner {
-        display: flex;
-        gap: 8px;
-        align-items: center;
-        padding-top: 4px;
-      }
+    #send {
+      border-radius: 999px;
+      border: none;
+      padding: 10px 16px;
+      font-size: 14px;
+      background: #2563eb;
+      color: #fff;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+    #send:disabled {
+      opacity: .6;
+      cursor: default;
+    }
 
-      #input {
-        flex: 1;
-        border-radius: 999px;
-        border: 1px solid var(--border);
-        padding: 10px 14px;
-        font-size: 14px;
-        background: #fff;
-        outline: none;
-      }
+    .small-note {
+      font-size: 11px;
+      color: var(--muted);
+      margin-top: 2px;
+      text-align: center;
+    }
 
-      #input:focus {
-        border-color: #2563eb;
-        box-shadow: 0 0 0 1px rgba(37, 99, 235, 0.1);
-      }
-
-      #send,
-      #newTopic {
-        border-radius: 999px;
-        border: none;
-        padding: 9px 14px;
-        font-size: 14px;
-        cursor: pointer;
-        white-space: nowrap;
-      }
-
-      #send {
-        background: #2563eb;
-        color: #fff;
-        font-weight: 500;
-      }
-
-      #send:disabled {
-        opacity: 0.6;
-        cursor: default;
-      }
-
-      #newTopic {
-        background: transparent;
-        border: 1px solid var(--border);
-        color: var(--muted);
-        margin-right: 8px;
-      }
-
-      #newTopic:hover {
-        background: #f9fafb;
-      }
-
-      .info {
-        font-size: 12px;
-        color: var(--muted);
-        margin-top: 4px;
-      }
-
-      /* ---------- TABLEAU MATERIEL ---------- */
-
-      .assistant-table-wrapper {
-        margin-top: 8px;
-        overflow-x: auto;
-      }
-
-      .assistant-table {
-        width: 100%;
-        border-collapse: collapse;
-        font-size: 13px;
-        background: #fff;
-        border: 1px solid var(--border);
-        border-radius: 10px;
-        overflow: hidden;
-      }
-
-      .assistant-table th,
-      .assistant-table td {
-        padding: 6px 8px;
-        border-top: 1px solid #f1f5f9;
-        text-align: left;
-        vertical-align: middle;
-      }
-
-      .assistant-table thead th {
-        background: #f3f4f6;
-        font-weight: 600;
-      }
-
-      .assistant-table tr:nth-child(even) td {
-        background: #fafafa;
-      }
-
-      @media (max-width: 640px) {
-        .bubble {
-          max-width: 100%;
-        }
-        header h1 {
-          font-size: 18px;
-        }
-      }
-    </style>
-  </head>
-  <body>
-    <div class="wrap">
-      <header>
-        <h1>Assistant ALTRAD METRIX</h1>
-        <div>
-          Bienvenue ! Je t’aide à configurer ton échafaudage ALTRAD METRIX
-          (liste de matériel prête à commander).
-        </div>
-      </header>
-
-      <div id="messages"></div>
-
-      <div class="composer">
-        <div class="composer-inner">
-          <button id="newTopic" type="button">Nouveau sujet</button>
-          <input
-            id="input"
-            autocomplete="off"
-            placeholder="Décris ta configuration (ex. : 5 m × 6 m × 1 m)…"
-          />
-          <button id="send" type="button">Envoyer</button>
-        </div>
-        <div class="info">
-          Les listes sont calculées à partir des règles ALTRAD METRIX et de tes
-          réponses (protection mur, grutage…).
-        </div>
-      </div>
+    @media (max-width: 600px) {
+      .app { padding: 6px 8px 8px; }
+      #input, #send { font-size: 14px; }
+      .bubble { font-size: 14px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <div class="subtitle">
+      Bienvenue ! Je t’aide à configurer ton échafaudage ALTRAD METRIX (liste de matériel prête à commander).
     </div>
 
-    <script>
-      const API_URL = "/api/chat";
+    <div id="messages"></div>
 
-      const messagesEl = document.getElementById("messages");
-      const inputEl = document.getElementById("input");
-      const sendEl = document.getElementById("send");
-      const newTopicEl = document.getElementById("newTopic");
+    <div class="composer">
+      <input
+        id="input"
+        placeholder="Décris ta configuration (ex. : 5 m × 6 m × 1 m)…"
+      />
+      <button id="send">Envoyer</button>
+    </div>
 
-      // On mémorise le thread côté client pour garder le contexte
-      let threadId = localStorage.getItem("metrix_thread") || null;
-      let sending = false;
+    <div class="small-note">
+      Les listes sont calculées à partir des règles ALTRAD METRIX et du bon de commande interne.
+    </div>
+  </div>
 
-      function nowTime() {
-        return new Date().toLocaleTimeString("fr-FR", {
-          hour: "2-digit",
-          minute: "2-digit",
-        });
+  <script>
+    const API_URL = "/api/chat";
+    const $messages = document.getElementById("messages");
+    const $input = document.getElementById("input");
+    const $send = document.getElementById("send");
+
+    // on garde le thread en session pour la webview
+    let threadId = sessionStorage.getItem("metrix_thread") || null;
+    let sending = false;
+
+    function time() {
+      return new Date().toLocaleTimeString("fr-FR", {
+        hour: "2-digit",
+        minute: "2-digit",
+      });
+    }
+
+    function addMessage(role, content, isHtml = false) {
+      const box = document.createElement("div");
+      box.className = "msg " + role;
+
+      const bubble = document.createElement("div");
+      bubble.className = "bubble " + role;
+
+      if (role === "assistant" && isHtml) {
+        bubble.innerHTML = content;
+      } else {
+        bubble.textContent = content;
       }
 
-      function escapeHtml(str = "") {
-        return str
-          .replace(/&/g, "&amp;")
-          .replace(/</g, "&lt;")
-          .replace(/>/g, "&gt;")
-          .replace(/"/g, "&quot;")
-          .replace(/'/g, "&#039;");
-      }
+      box.appendChild(bubble);
 
-      // Transforme un éventuel tableau Markdown en <table> HTML responsive
-      function renderMarkdownTables(text) {
-        const lines = text.split(/\r?\n/);
-        let html = "";
-        let i = 0;
-
-        while (i < lines.length) {
-          const line = lines[i];
-
-          // Détection d’un bloc de tableau Markdown :
-          // ligne avec des | puis ligne suivante avec ---|--- etc.
-          if (
-            line.includes("|") &&
-            i + 1 < lines.length &&
-            /^\s*\|?\s*-[-\s|]*\|?\s*$/.test(lines[i + 1])
-          ) {
-            const headerLine = lines[i];
-            i += 2; // on saute la ligne de séparateurs
-
-            const rows = [];
-            while (
-              i < lines.length &&
-              lines[i].includes("|") &&
-              lines[i].trim() !== ""
-            ) {
-              rows.push(lines[i]);
-              i++;
-            }
-
-            const headers = headerLine
-              .split("|")
-              .map((c) => c.trim())
-              .filter(Boolean);
-
-            html +=
-              '<div class="assistant-table-wrapper"><table class="assistant-table"><thead><tr>';
-            headers.forEach((h) => {
-              html += "<th>" + escapeHtml(h) + "</th>";
-            });
-            html += "</tr></thead><tbody>";
-
-            rows.forEach((row) => {
-              const cells = row
-                .split("|")
-                .map((c) => c.trim())
-                .filter(Boolean);
-              html += "<tr>";
-              cells.forEach((c) => {
-                html += "<td>" + escapeHtml(c) + "</td>";
-              });
-              html += "</tr>";
-            });
-
-            html += "</tbody></table></div>";
-
-            // sauter les éventuelles lignes vides après le tableau
-            while (i < lines.length && lines[i].trim() === "") i++;
-          } else {
-            html += escapeHtml(line) + "<br>";
-            i++;
-          }
-        }
-
-        return html;
-      }
-
-      function addMessage(role, content) {
-        const box = document.createElement("div");
-        box.className = "msg " + role;
-
-        const bubble = document.createElement("div");
-        bubble.className = "bubble " + role;
-
-        if (role === "assistant") {
-          // On rend le texte avec conversion éventuelle de tableau Markdown
-          bubble.innerHTML = renderMarkdownTables(content || "");
-        } else if (role === "system") {
-          bubble.textContent = content;
-        } else {
-          // user
-          bubble.textContent = content;
-        }
-
+      if (role !== "system") {
         const stamp = document.createElement("div");
         stamp.className = "time";
-        stamp.textContent = nowTime();
-
-        box.appendChild(bubble);
-        if (role !== "system") box.appendChild(stamp);
-
-        messagesEl.appendChild(box);
-        messagesEl.scrollTop = messagesEl.scrollHeight;
+        stamp.textContent = time();
+        box.appendChild(stamp);
       }
 
-      function resetConversation() {
-        threadId = null;
-        localStorage.removeItem("metrix_thread");
-        messagesEl.innerHTML = "";
-        addMessage(
-          "system",
-          "Nouveau sujet démarré. Décris simplement la façade à monter (dimensions, protection mur, etc.)."
-        );
-        inputEl.value = "";
-        inputEl.focus();
-      }
+      $messages.appendChild(box);
+      $messages.scrollTop = $messages.scrollHeight;
+      return bubble;
+    }
 
-      async function send() {
-        const text = inputEl.value.trim();
-        if (!text || sending) return;
+    // message système de départ
+    addMessage(
+      "system",
+      "Bienvenue ! Je t’aide à configurer ton échafaudage ALTRAD METRIX (liste de matériel prête à commander)."
+    );
 
-        sending = true;
-        sendEl.disabled = true;
+    async function send() {
+      const text = $input.value.trim();
+      if (!text || sending) return;
 
-        addMessage("user", text);
-        inputEl.value = "";
+      // message utilisateur
+      addMessage("user", text);
+      $input.value = "";
+      $input.focus();
+
+      // placeholder assistant
+      const placeholder = addMessage("assistant", "Calcul en cours…");
+      sending = true;
+      $send.disabled = true;
+
+      try {
+        const body = { question: text };
+        if (threadId) body.threadId = threadId;
+
+        const resp = await fetch(API_URL, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(body),
+        });
+
+        const raw = await resp.text();
+
+        let answerText = raw;
+        let htmlMode = false;
 
         try {
-          const resp = await fetch(API_URL, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ question: text, threadId }),
-          });
-
-          const data = await resp.json();
-
-          if (data?.threadId) {
+          const data = JSON.parse(raw);
+          if (data.threadId) {
             threadId = data.threadId;
-            localStorage.setItem("metrix_thread", threadId);
+            sessionStorage.setItem("metrix_thread", threadId);
           }
-
-          if (data?.answer) {
-            addMessage("assistant", data.answer);
-          } else if (data?.error) {
-            addMessage(
-              "assistant",
-              "Désolé, une erreur est survenue : " + data.error
-            );
-          } else {
-            addMessage(
-              "assistant",
-              "Je n'ai pas reçu de réponse exploitable du serveur."
-            );
+          if (typeof data.answer === "string") {
+            answerText = data.answer;
           }
-        } catch (e) {
-          addMessage(
-            "assistant",
-            "Désolé, je n'arrive pas à joindre le serveur. Tu peux réessayer dans quelques instants."
-          );
-        } finally {
-          sending = false;
-          sendEl.disabled = false;
-          inputEl.focus();
+        } catch {
+          // pas du JSON, on laisse answerText = raw
         }
+
+        // Si l'assistant renvoie un <table> HTML, on l'affiche en HTML,
+        // sinon on garde le texte brut.
+        if (/<table[\s\S]*<\/table>/i.test(answerText)) {
+          const match = answerText.match(/<table[\s\S]*<\/table>/i);
+          const after = answerText.slice(
+            answerText.indexOf(match[0]) + match[0].length
+          );
+          const p = after.match(/<p[\s\S]*?<\/p>/i);
+          placeholder.innerHTML =
+            '<div class="assistant-content">' +
+            match[0] +
+            (p ? p[0] : "") +
+            "</div>";
+        } else {
+          placeholder.textContent = answerText;
+        }
+      } catch (e) {
+        placeholder.textContent =
+          "Désolé, une erreur est survenue. Réessaie dans un instant.";
+        console.error(e);
+      } finally {
+        sending = false;
+        $send.disabled = false;
       }
+    }
 
-      // événements
-      sendEl.addEventListener("click", send);
-      inputEl.addEventListener("keydown", (e) => {
-        if (e.key === "Enter") send();
-      });
-      newTopicEl.addEventListener("click", resetConversation);
-
-      // message système d’accueil
-      addMessage(
-        "system",
-        "Bienvenue ! Je t’aide à configurer ton échafaudage ALTRAD METRIX (liste de matériel prête à commander)."
-      );
-    </script>
-  </body>
+    $send.addEventListener("click", send);
+    $input.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") send();
+    });
+  </script>
+</body>
 </html>
