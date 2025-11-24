@@ -114,3 +114,110 @@ export default async function handler(req, res) {
       .json({ error: e?.message || "Erreur interne côté serveur" });
   }
 }
+// --- Catalogue officiel ALTRAD METRIX (extrait) ---
+// Poids en kg, d'après ton bon de commande + notice.
+// Le modèle NE doit utiliser que ces références pour la liste de matériel.
+
+const CATALOG = {
+  ALTASV5: {
+    ref: "ALTASV5",
+    designation: "Socle à vérin 0,61 m",
+    poids: 3.2,
+  },
+  ALTKFSV: {
+    ref: "ALTKFSV",
+    designation: "Fixe socle à vérin",
+    poids: 3.1,
+  },
+  ALTKEMB: {
+    ref: "ALTKEMB",
+    designation: "Embase de départ",
+    poids: 2.1,
+  },
+  ALTKPT1: {
+    ref: "ALTKPT1",
+    designation: "Poteau standard hauteur 1,00 m",
+    poids: 5.4,
+  },
+  ALTKPT2: {
+    ref: "ALTKPT2",
+    designation: "Poteau standard hauteur 2,00 m",
+    poids: 9.9,
+  },
+  ALTKLC2: {
+    ref: "ALTKLC2",
+    designation: "Lisse 1,00 m (perpendiculaire)",
+    poids: 4.0,
+  },
+  ALTKLC5: {
+    ref: "ALTKLC5",
+    designation: "Lisse 2,50 m (protection échelle)",
+    poids: 8.5,
+  },
+  ALTKMC5: {
+    ref: "ALTKMC5",
+    designation: "Plancher acier 2,50 × 0,30 m",
+    poids: 17.3,
+  },
+  ALTKPE5: {
+    ref: "ALTKPE5",
+    designation: "Plancher trappe 2,50 × 0,60 m",
+    poids: 25.4,
+  },
+  ALTKGH5: {
+    ref: "ALTKGH5",
+    designation: "Garde-corps permanent de sécurité 2,50 m",
+    poids: 13.3,
+  },
+  ALTKGH2: {
+    ref: "ALTKGH2",
+    designation: "Garde-corps permanent de sécurité 1,00 m avec plinthe intégrée",
+    poids: 8.5,
+  },
+  ALTKPI5: {
+    ref: "ALTKPI5",
+    designation: "Plinthe bois 2,50 m",
+    poids: 4.9,
+  },
+  ALTKDV5: {
+    ref: "ALTKDV5",
+    designation: "Diagonale verticale 2,50 × 2,00 m",
+    poids: 11.2,
+  },
+  ALT00S75: {
+    ref: "ALT00S75",
+    designation: "Stabilisateur télescopique 3,30 à 6,00 m",
+    poids: 3.2,
+  },
+  ALTL99P: {
+    ref: "ALTL99P",
+    designation: "Cale bois",
+    poids: 1.1,
+  },
+  ALTRLEV: {
+    ref: "ALTRLEV",
+    designation: "Crochet de levage",
+    poids: 1.1,
+  },
+  ALTKB12: {
+    ref: "ALTKB12",
+    designation: "Boulon de jonction 12 × 60 mm (poteaux)",
+    poids: 0.1,
+  },
+  ALTAA2: {
+    ref: "ALTAA2",
+    designation: "Tube d’amarrage 1,00 m crochet coudé",
+    poids: 3.9,
+  },
+  ALTAR12: {
+    ref: "ALTAR12",
+    designation: "Tige d’amarrage diamètre 12 longueur 120 mm",
+    poids: 1.0,
+  },
+  ALTACPI: {
+    ref: "ALTACPI",
+    designation: "Coupleur de levage pour tube 48,3 mm",
+    poids: 2.0,
+  },
+};
+
