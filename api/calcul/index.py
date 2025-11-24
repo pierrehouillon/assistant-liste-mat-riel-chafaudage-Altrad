@@ -20,7 +20,6 @@ class EchafaudageRequest(BaseModel):
     protection_mur: str
     grutage: str
     stabilisation: str
-    cales_plastiques: str
 
 
 @app.post("/")
@@ -32,7 +31,6 @@ def calcul(req: EchafaudageRequest):
     F = req.F
     protection_mur = req.protection_mur.upper() == "OUI"
     grutage = req.grutage.upper() == "OUI"
-    cales_plastiques = req.cales_plastiques.upper() == "OUI"
     stabilisation = req.stabilisation.lower()
 
     # Travées & niveaux
@@ -73,7 +71,7 @@ def calcul(req: EchafaudageRequest):
     # STABILISATEURS
     ALT000675 = (T + 1) if (stabilisation == "stabilisateurs" and H <= 6) else 0
     ALTAMX1 = ALTASV5 + ALT000675
-    ALTACPI = (ALTASV5 + ALT000675) if cales_plastiques else 0
+    ALTACPI = 0  # pas de cales plastiques calculées automatiquement
 
     # AMARRAGE
     POINTS = math.ceil((L * H) / 12) if stabilisation == "amarrage" else 0
